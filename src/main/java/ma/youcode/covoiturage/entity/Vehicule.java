@@ -53,6 +53,10 @@ public class Vehicule {
     @Builder.Default
     private List<Trajet> trajets = new ArrayList<>();
 
+    public void assignToConducteur(Conducteur conducteur) {
+        this.conducteur = conducteur;
+    }
+
     public void updateDetails(String marque, String modele, String immatriculation, String couleur, Integer capacite) {
         this.marque = marque;
         this.modele = modele;

@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "covoiturage-api-collection",
     "name": "Covoiturage API",
-    "description": "Collection Postman pour l'API REST de Covoiturage.\nComprend les cas nominaux et les cas d'erreur (RFC 7807 ProblemDetail, règles R-xx).",
+    "description": "Collection Postman pour l'API REST de Covoiturage.\nChaque fonctionnalité regroupe ses cas nominaux et ses cas d'erreurs métier spécifiques (RFC 7807 ProblemDetail, règles R-xx).",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -20,315 +20,602 @@
       "key": "passengerId",
       "value": "1",
       "type": "string"
+    },
+    {
+      "key": "vehicleId",
+      "value": "1",
+      "type": "string"
     }
   ],
   "item": [
     {
-      "name": "Conducteurs (Drivers) - COV-12",
+      "name": "1. Conducteurs (Drivers) - COV-12",
       "item": [
         {
-          "name": "F-01 : Créer un conducteur (201 Created)",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"nom\": \"El Alami\",\n  \"prenom\": \"Karim\",\n  \"email\": \"karim.alami@example.com\",\n  \"telephone\": \"+212612345678\",\n  \"numeroPermis\": \"PERM-98765\",\n  \"anneesExperience\": 5\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/drivers",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "drivers"]
-            },
-            "description": "Création d'un nouveau profil conducteur avec validation des champs (téléphone marocain, permis, email)."
-          }
-        },
-        {
-          "name": "F-02 : Lister tous les conducteurs (200 OK)",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/drivers",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "drivers"]
-            },
-            "description": "Récupère la liste de l'ensemble des conducteurs enregistrés."
-          }
-        },
-        {
-          "name": "F-03 : Consulter un conducteur par ID (200 OK)",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/drivers/{{driverId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "drivers", "{{driverId}}"]
-            },
-            "description": "Consulte les détails d'un conducteur spécifique par son identifiant numérique."
-          }
-        },
-        {
-          "name": "F-04 : Modifier son profil conducteur (200 OK)",
-          "request": {
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "X-Driver-Id",
-                "value": "{{driverId}}",
-                "description": "Simule l'authentification de l'acteur courant"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"nom\": \"El Alami\",\n  \"prenom\": \"Karim\",\n  \"email\": \"karim.alami@example.com\",\n  \"telephone\": \"+212699887766\",\n  \"numeroPermis\": \"PERM-98765\",\n  \"anneesExperience\": 6\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/drivers/{{driverId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "drivers", "{{driverId}}"]
-            },
-            "description": "Met à jour le profil d'un conducteur. Nécessite le header X-Driver-Id identique à l'id du chemin."
-          }
-        },
-        {
-          "name": "F-05 : Rechercher des conducteurs par nom, prénom ou email (200 OK)",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/drivers/search?nom=Alami&prenom=Karim",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "drivers", "search"],
-              "query": [
-                {
-                  "key": "nom",
-                  "value": "Alami"
+          "name": "Cas Nominaux",
+          "item": [
+            {
+              "name": "F-01 : Créer un conducteur (201 Created)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"nom\": \"El Alami\",\n  \"prenom\": \"Karim\",\n  \"email\": \"karim.alami@example.com\",\n  \"telephone\": \"+212612345678\",\n  \"numeroPermis\": \"PERM-98765\",\n  \"anneesExperience\": 5\n}"
                 },
-                {
-                  "key": "prenom",
-                  "value": "Karim"
+                "url": {
+                  "raw": "{{baseUrl}}/api/drivers",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "drivers"]
                 },
-                {
-                  "key": "email",
-                  "value": "karim.alami@example.com",
-                  "disabled": true
-                }
-              ]
+                "description": "Création d'un profil conducteur avec validation de téléphone marocain et permis."
+              }
             },
-            "description": "Recherche filtrée multicritère par nom, prénom ou email (insensible à la casse)."
-          }
+            {
+              "name": "F-02 : Lister tous les conducteurs (200 OK)",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/drivers",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "drivers"]
+                },
+                "description": "Récupère l'ensemble des conducteurs enregistrés."
+              }
+            },
+            {
+              "name": "F-03 : Consulter un conducteur par ID (200 OK)",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/drivers/{{driverId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "drivers", "{{driverId}}"]
+                },
+                "description": "Consulte les détails d'un conducteur spécifique par ID."
+              }
+            },
+            {
+              "name": "F-04 : Modifier son profil conducteur (200 OK)",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Driver-Id",
+                    "value": "{{driverId}}",
+                    "description": "Simule l'authentification de l'acteur courant"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"nom\": \"El Alami\",\n  \"prenom\": \"Karim\",\n  \"email\": \"karim.alami@example.com\",\n  \"telephone\": \"+212699887766\",\n  \"numeroPermis\": \"PERM-98765\",\n  \"anneesExperience\": 6\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/drivers/{{driverId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "drivers", "{{driverId}}"]
+                },
+                "description": "Met à jour le profil d'un conducteur avec validation du header X-Driver-Id."
+              }
+            },
+            {
+              "name": "F-05 : Rechercher des conducteurs par nom, prénom ou email (200 OK)",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/drivers/search?nom=Alami&prenom=Karim",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "drivers", "search"],
+                  "query": [
+                    {
+                      "key": "nom",
+                      "value": "Alami"
+                    },
+                    {
+                      "key": "prenom",
+                      "value": "Karim"
+                    },
+                    {
+                      "key": "email",
+                      "value": "karim.alami@example.com",
+                      "disabled": true
+                    }
+                  ]
+                },
+                "description": "Recherche multicritère insensible à la casse."
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cas d'Erreurs & Règles Métier",
+          "item": [
+            {
+              "name": "400 - Validation DTO en échec",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"nom\": \"\",\n  \"prenom\": \"\",\n  \"email\": \"email-invalide\",\n  \"telephone\": \"12345\",\n  \"numeroPermis\": \"\",\n  \"anneesExperience\": -1\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/drivers",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "drivers"]
+                },
+                "description": "Validation DTO échouée retournant la liste des erreurs dans ProblemDetail."
+              }
+            },
+            {
+              "name": "400 - Recherche conducteur sans paramètres",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/drivers/search",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "drivers", "search"]
+                },
+                "description": "Recherche sans 'nom', 'prenom' ni 'email' levant InvalidRequestException."
+              }
+            },
+            {
+              "name": "403 - Modification non autorisée (X-Driver-Id != ID)",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Driver-Id",
+                    "value": "99",
+                    "description": "ID différent de l'id dans l'URL"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"nom\": \"Hacker\",\n  \"prenom\": \"Test\",\n  \"email\": \"hacker@example.com\",\n  \"telephone\": \"+212611223344\",\n  \"numeroPermis\": \"PERM-99999\",\n  \"anneesExperience\": 1\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/drivers/1",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "drivers", "1"]
+                },
+                "description": "Règle R-36 interdisant la modification du profil d'un autre conducteur."
+              }
+            },
+            {
+              "name": "404 - Conducteur Inexistant",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/drivers/99999",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "drivers", "99999"]
+                },
+                "description": "Conducteur introuvable levant ResourceNotFoundException."
+              }
+            },
+            {
+              "name": "409 - Doublon Email ou Permis (R-01 & R-02)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"nom\": \"Doublon\",\n  \"prenom\": \"Test\",\n  \"email\": \"karim.alami@example.com\",\n  \"telephone\": \"+212622334455\",\n  \"numeroPermis\": \"PERM-98765\",\n  \"anneesExperience\": 2\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/drivers",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "drivers"]
+                },
+                "description": "Email ou permis déjà existant levant BusinessRuleException."
+              }
+            }
+          ]
         }
       ]
     },
     {
-      "name": "Passagers (Passengers) - COV-13",
+      "name": "2. Passagers (Passengers) - COV-13",
       "item": [
         {
-          "name": "F-06 : Créer un passager (201 Created)",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
+          "name": "Cas Nominaux",
+          "item": [
+            {
+              "name": "F-06 : Créer un passager (201 Created)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"nom\": \"Benali\",\n  \"prenom\": \"Sara\",\n  \"email\": \"sara.benali@example.com\",\n  \"telephone\": \"+212612345678\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/passengers",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "passengers"]
+                },
+                "description": "Création d'un profil passager avec validation téléphone et email."
               }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"nom\": \"Benali\",\n  \"prenom\": \"Sara\",\n  \"email\": \"sara.benali@example.com\",\n  \"telephone\": \"+212612345678\"\n}"
             },
-            "url": {
-              "raw": "{{baseUrl}}/api/passengers",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "passengers"]
-            },
-            "description": "Création d'un profil passager avec validation téléphone marocain et email."
-          }
-        },
-        {
-          "name": "F-07 : Consulter un passager par ID (200 OK)",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/passengers/{{passengerId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "passengers", "{{passengerId}}"]
-            },
-            "description": "Consulte les détails d'un passager par son identifiant."
-          }
-        },
-        {
-          "name": "F-08 : Modifier son profil passager (200 OK)",
-          "request": {
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "X-Passenger-Id",
-                "value": "{{passengerId}}",
-                "description": "Simule l'authentification du passager connecté"
+            {
+              "name": "F-07 : Consulter un passager par ID (200 OK)",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/passengers/{{passengerId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "passengers", "{{passengerId}}"]
+                },
+                "description": "Consulte les détails d'un passager par son ID."
               }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"nom\": \"Benali\",\n  \"prenom\": \"Sara\",\n  \"email\": \"sara.benali@example.com\",\n  \"telephone\": \"+212699881122\"\n}"
             },
-            "url": {
-              "raw": "{{baseUrl}}/api/passengers/{{passengerId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "passengers", "{{passengerId}}"]
+            {
+              "name": "F-08 : Modifier son profil passager (200 OK)",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Passenger-Id",
+                    "value": "{{passengerId}}",
+                    "description": "Simule l'authentification du passager connecté"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"nom\": \"Benali\",\n  \"prenom\": \"Sara\",\n  \"email\": \"sara.benali@example.com\",\n  \"telephone\": \"+212699881122\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/passengers/{{passengerId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "passengers", "{{passengerId}}"]
+                },
+                "description": "Modification du profil passager protégé par le header X-Passenger-Id (R-36)."
+              }
             },
-            "description": "Modification du profil passager protégé par le header X-Passenger-Id (R-36)."
-          }
+            {
+              "name": "F-09 : Lister tous les passagers (200 OK)",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/passengers",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "passengers"]
+                },
+                "description": "Récupère l'ensemble des passagers enregistrés."
+              }
+            },
+            {
+              "name": "F-10 : Rechercher des passagers par email (200 OK)",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/passengers/search?email=sara",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "passengers", "search"],
+                  "query": [
+                    {
+                      "key": "email",
+                      "value": "sara"
+                    }
+                  ]
+                },
+                "description": "Recherche de passagers par email."
+              }
+            }
+          ]
         },
         {
-          "name": "F-09 : Lister tous les passagers (200 OK)",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/passengers",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "passengers"]
+          "name": "Cas d'Erreurs & Règles Métier",
+          "item": [
+            {
+              "name": "400 - Recherche passager sans email (F-10)",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/passengers/search",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "passengers", "search"]
+                },
+                "description": "Recherche sans paramètre 'email' levant InvalidRequestException."
+              }
             },
-            "description": "Récupère l'ensemble des passagers enregistrés."
-          }
-        },
-        {
-          "name": "F-10 : Rechercher des passagers par email (200 OK)",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/passengers/search?email=sara",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "passengers", "search"],
-              "query": [
-                {
-                  "key": "email",
-                  "value": "sara"
-                }
-              ]
+            {
+              "name": "403 - Modification non autorisée (X-Passenger-Id != ID)",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Passenger-Id",
+                    "value": "99",
+                    "description": "ID différent du profil modifié"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"nom\": \"Intrus\",\n  \"prenom\": \"Test\",\n  \"email\": \"intrus@example.com\",\n  \"telephone\": \"+212611223344\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/passengers/1",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "passengers", "1"]
+                },
+                "description": "Règle R-36 interdisant de modifier le profil d'un autre passager."
+              }
             },
-            "description": "Recherche de passagers par email (insensible à la casse)."
-          }
+            {
+              "name": "404 - Passager Inexistant",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/passengers/99999",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "passengers", "99999"]
+                },
+                "description": "Passager introuvable levant ResourceNotFoundException."
+              }
+            },
+            {
+              "name": "409 - Doublon Email passager (R-04)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"nom\": \"Doublon\",\n  \"prenom\": \"Test\",\n  \"email\": \"sara.benali@example.com\",\n  \"telephone\": \"+212622334455\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/passengers",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "passengers"]
+                },
+                "description": "Email passager déjà existant levant BusinessRuleException."
+              }
+            }
+          ]
         }
       ]
     },
     {
-      "name": "Cas d'Erreurs & Règles Métier (RFC 7807)",
+      "name": "3. Véhicules (Vehicles) - COV-14",
       "item": [
         {
-          "name": "400 - Validation DTO en échec",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
+          "name": "Cas Nominaux",
+          "item": [
+            {
+              "name": "F-12 : Ajouter un véhicule pour un conducteur (201 Created)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Driver-Id",
+                    "value": "{{driverId}}",
+                    "description": "Identifiant du conducteur propriétaire"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"marque\": \"Dacia\",\n  \"modele\": \"Logan\",\n  \"immatriculation\": \"12345-A-1\",\n  \"couleur\": \"Blanc\",\n  \"capacite\": 4\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/vehicles",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "vehicles"]
+                },
+                "description": "Ajout d'un véhicule rattaché au conducteur via le header X-Driver-Id."
               }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"nom\": \"\",\n  \"prenom\": \"\",\n  \"email\": \"email-invalide\",\n  \"telephone\": \"12345\",\n  \"numeroPermis\": \"\",\n  \"anneesExperience\": -1\n}"
             },
-            "url": {
-              "raw": "{{baseUrl}}/api/drivers",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "drivers"]
-            },
-            "description": "Vérifie le retour ProblemDetail avec la liste détaillée des champs en erreur."
-          }
-        },
-        {
-          "name": "400 - Recherche sans paramètres",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/drivers/search",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "drivers", "search"]
-            },
-            "description": "Déclenche une InvalidRequestException lorsque ni nom ni email ne sont passés."
-          }
-        },
-        {
-          "name": "403 - Forbidden (X-Driver-Id différent)",
-          "request": {
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "X-Driver-Id",
-                "value": "99",
-                "description": "ID différent de l'id dans l'URL"
+            {
+              "name": "F-13 : Modifier un véhicule (200 OK)",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Driver-Id",
+                    "value": "{{driverId}}",
+                    "description": "Identifiant du conducteur propriétaire"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"marque\": \"Dacia\",\n  \"modele\": \"Sandero Stepway\",\n  \"immatriculation\": \"12345-A-1\",\n  \"couleur\": \"Noir\",\n  \"capacite\": 4\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/vehicles/{{vehicleId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "vehicles", "{{vehicleId}}"]
+                },
+                "description": "Modification d'un véhicule vérifiant que l'appelant est bien le propriétaire."
               }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"nom\": \"Hacker\",\n  \"prenom\": \"Test\",\n  \"email\": \"hacker@example.com\",\n  \"telephone\": \"+212611223344\",\n  \"numeroPermis\": \"PERM-99999\",\n  \"anneesExperience\": 1\n}"
             },
-            "url": {
-              "raw": "{{baseUrl}}/api/drivers/1",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "drivers", "1"]
-            },
-            "description": "Vérifie le blocage de modification d'un profil tiers (règle R-36)."
-          }
-        },
-        {
-          "name": "404 - Conducteur Inexistant",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/drivers/99999",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "drivers", "99999"]
-            },
-            "description": "Déclenche une ResourceNotFoundException traduite en 404 ProblemDetail."
-          }
-        },
-        {
-          "name": "409 - Doublon Email ou Permis (R-01 & R-02)",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
+            {
+              "name": "F-14 : Consulter un véhicule par ID (200 OK)",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/vehicles/{{vehicleId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "vehicles", "{{vehicleId}}"]
+                },
+                "description": "Consulte les détails d'un véhicule spécifique."
               }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"nom\": \"Doublon\",\n  \"prenom\": \"Test\",\n  \"email\": \"karim.alami@example.com\",\n  \"telephone\": \"+212622334455\",\n  \"numeroPermis\": \"PERM-98765\",\n  \"anneesExperience\": 2\n}"
             },
-            "url": {
-              "raw": "{{baseUrl}}/api/drivers",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "drivers"]
+            {
+              "name": "F-15 : Lister les véhicules du conducteur (200 OK)",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "X-Driver-Id",
+                    "value": "{{driverId}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/vehicles",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "vehicles"]
+                },
+                "description": "Récupère l'ensemble des véhicules rattachés au conducteur connecté."
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cas d'Erreurs & Règles Métier",
+          "item": [
+            {
+              "name": "400 - Capacité véhicule hors bornes (capacité = 9)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Driver-Id",
+                    "value": "{{driverId}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"marque\": \"Dacia\",\n  \"modele\": \"Logan\",\n  \"immatriculation\": \"99999-B-1\",\n  \"couleur\": \"Noir\",\n  \"capacite\": 9\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/vehicles",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "vehicles"]
+                },
+                "description": "Capacité > 8 refusée par la règle R-06 (400 Bad Request)."
+              }
             },
-            "description": "Vérifie qu'un email ou permis déjà utilisé lève une BusinessRuleException (409 Conflict)."
-          }
+            {
+              "name": "403 - Modification véhicule d'un autre conducteur (R-36 / R-07)",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Driver-Id",
+                    "value": "99",
+                    "description": "Conducteur différent du propriétaire"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"marque\": \"Dacia\",\n  \"modele\": \"Sandero\",\n  \"immatriculation\": \"12345-A-1\",\n  \"couleur\": \"Rouge\",\n  \"capacite\": 4\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/vehicles/{{vehicleId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "vehicles", "{{vehicleId}}"]
+                },
+                "description": "Refus de modification d'un véhicule appartenant à un autre conducteur (403 Forbidden)."
+              }
+            },
+            {
+              "name": "404 - Véhicule Inexistant",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/vehicles/99999",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "vehicles", "99999"]
+                },
+                "description": "Recherche d'un véhicule inexistant renvoyant 404 Not Found."
+              }
+            },
+            {
+              "name": "409 - Doublon Immatriculation véhicule (R-05)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Driver-Id",
+                    "value": "{{driverId}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"marque\": \"Renault\",\n  \"modele\": \"Clio\",\n  \"immatriculation\": \"12345-A-1\",\n  \"couleur\": \"Gris\",\n  \"capacite\": 4\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/vehicles",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "vehicles"]
+                },
+                "description": "Immatriculation déjà existante refusée par la règle R-05 (409 Conflict)."
+              }
+            }
+          ]
         }
       ]
     }
