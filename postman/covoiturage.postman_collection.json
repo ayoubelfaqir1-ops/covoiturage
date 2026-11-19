@@ -15,6 +15,11 @@
       "key": "driverId",
       "value": "1",
       "type": "string"
+    },
+    {
+      "key": "passengerId",
+      "value": "1",
+      "type": "string"
     }
   ],
   "item": [
@@ -122,6 +127,105 @@
               ]
             },
             "description": "Recherche filtrée multicritère par nom, prénom ou email (insensible à la casse)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Passagers (Passengers) - COV-13",
+      "item": [
+        {
+          "name": "F-06 : Créer un passager (201 Created)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nom\": \"Benali\",\n  \"prenom\": \"Sara\",\n  \"email\": \"sara.benali@example.com\",\n  \"telephone\": \"+212612345678\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/passengers",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "passengers"]
+            },
+            "description": "Création d'un profil passager avec validation téléphone marocain et email."
+          }
+        },
+        {
+          "name": "F-07 : Consulter un passager par ID (200 OK)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/passengers/{{passengerId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "passengers", "{{passengerId}}"]
+            },
+            "description": "Consulte les détails d'un passager par son identifiant."
+          }
+        },
+        {
+          "name": "F-08 : Modifier son profil passager (200 OK)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Passenger-Id",
+                "value": "{{passengerId}}",
+                "description": "Simule l'authentification du passager connecté"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nom\": \"Benali\",\n  \"prenom\": \"Sara\",\n  \"email\": \"sara.benali@example.com\",\n  \"telephone\": \"+212699881122\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/passengers/{{passengerId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "passengers", "{{passengerId}}"]
+            },
+            "description": "Modification du profil passager protégé par le header X-Passenger-Id (R-36)."
+          }
+        },
+        {
+          "name": "F-09 : Lister tous les passagers (200 OK)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/passengers",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "passengers"]
+            },
+            "description": "Récupère l'ensemble des passagers enregistrés."
+          }
+        },
+        {
+          "name": "F-10 : Rechercher des passagers par email (200 OK)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/passengers/search?email=sara",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "passengers", "search"],
+              "query": [
+                {
+                  "key": "email",
+                  "value": "sara"
+                }
+              ]
+            },
+            "description": "Recherche de passagers par email (insensible à la casse)."
           }
         }
       ]
