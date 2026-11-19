@@ -25,6 +25,11 @@
       "key": "vehicleId",
       "value": "1",
       "type": "string"
+    },
+    {
+      "key": "tripId",
+      "value": "1",
+      "type": "string"
     }
   ],
   "item": [
@@ -613,6 +618,298 @@
                   "path": ["api", "vehicles"]
                 },
                 "description": "Immatriculation déjà existante refusée par la règle R-05 (409 Conflict)."
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "4. Trajets (Trips) - COV-17",
+      "item": [
+        {
+          "name": "Cas Nominaux",
+          "item": [
+            {
+              "name": "F-17 : Publier un trajet (201 Created)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status is 201 Created\", function () {",
+                      "    pm.response.to.have.status(201);",
+                      "});",
+                      "var json = pm.response.json();",
+                      "if (json && json.id) {",
+                      "    pm.collectionVariables.set(\"tripId\", json.id);",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Driver-Id",
+                    "value": "{{driverId}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"vehicleId\": {{vehicleId}},\n  \"placesProposees\": 3,\n  \"stops\": [\n    {\n      \"ville\": \"Casablanca\",\n      \"heurePassage\": \"2026-12-01T14:00:00\",\n      \"prixDepuisDepart\": 0.0\n    },\n    {\n      \"ville\": \"Rabat\",\n      \"heurePassage\": \"2026-12-01T15:15:00\",\n      \"prixDepuisDepart\": 35.0\n    },\n    {\n      \"ville\": \"Tanger\",\n      \"heurePassage\": \"2026-12-01T18:30:00\",\n      \"prixDepuisDepart\": 120.0\n    }\n  ]\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/trips",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "trips"]
+                },
+                "description": "Publication nominale d'un trajet avec calcul automatique de l'ordre, du statut PUBLIE, et des villes de départ/arrivée."
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cas d'Erreurs & Règles Métier",
+          "item": [
+            {
+              "name": "404 - Conducteur inexistant (R-07)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Driver-Id",
+                    "value": "9999"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"vehicleId\": {{vehicleId}},\n  \"placesProposees\": 3,\n  \"stops\": [\n    {\n      \"ville\": \"Casablanca\",\n      \"heurePassage\": \"2026-12-01T14:00:00\",\n      \"prixDepuisDepart\": 0.0\n    },\n    {\n      \"ville\": \"Rabat\",\n      \"heurePassage\": \"2026-12-01T15:15:00\",\n      \"prixDepuisDepart\": 35.0\n    }\n  ]\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/trips",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "trips"]
+                },
+                "description": "Conducteur X-Driver-Id non trouvé en base (404 Not Found)."
+              }
+            },
+            {
+              "name": "403 - Véhicule d'un autre conducteur (R-36)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Driver-Id",
+                    "value": "2"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"vehicleId\": {{vehicleId}},\n  \"placesProposees\": 3,\n  \"stops\": [\n    {\n      \"ville\": \"Casablanca\",\n      \"heurePassage\": \"2026-12-01T14:00:00\",\n      \"prixDepuisDepart\": 0.0\n    },\n    {\n      \"ville\": \"Rabat\",\n      \"heurePassage\": \"2026-12-01T15:15:00\",\n      \"prixDepuisDepart\": 35.0\n    }\n  ]\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/trips",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "trips"]
+                },
+                "description": "Tentative de publication avec le véhicule appartenant à un autre conducteur (403 Forbidden)."
+              }
+            },
+            {
+              "name": "400 - Places > Capacité du véhicule (R-09)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Driver-Id",
+                    "value": "{{driverId}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"vehicleId\": {{vehicleId}},\n  \"placesProposees\": 10,\n  \"stops\": [\n    {\n      \"ville\": \"Casablanca\",\n      \"heurePassage\": \"2026-12-01T14:00:00\",\n      \"prixDepuisDepart\": 0.0\n    },\n    {\n      \"ville\": \"Rabat\",\n      \"heurePassage\": \"2026-12-01T15:15:00\",\n      \"prixDepuisDepart\": 35.0\n    }\n  ]\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/trips",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "trips"]
+                },
+                "description": "Nombre de places supérieur à la capacité du véhicule (400 Bad Request)."
+              }
+            },
+            {
+              "name": "400 - Moins de 2 points d'arrêt (R-10)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Driver-Id",
+                    "value": "{{driverId}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"vehicleId\": {{vehicleId}},\n  \"placesProposees\": 3,\n  \"stops\": [\n    {\n      \"ville\": \"Casablanca\",\n      \"heurePassage\": \"2026-12-01T14:00:00\",\n      \"prixDepuisDepart\": 0.0\n    }\n  ]\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/trips",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "trips"]
+                },
+                "description": "Trajet avec un seul arrêt (400 Bad Request)."
+              }
+            },
+            {
+              "name": "400 - Doublon de ville dans l'itinéraire (R-10)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Driver-Id",
+                    "value": "{{driverId}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"vehicleId\": {{vehicleId}},\n  \"placesProposees\": 3,\n  \"stops\": [\n    {\n      \"ville\": \"Casablanca\",\n      \"heurePassage\": \"2026-12-01T14:00:00\",\n      \"prixDepuisDepart\": 0.0\n    },\n    {\n      \"ville\": \"Rabat\",\n      \"heurePassage\": \"2026-12-01T15:15:00\",\n      \"prixDepuisDepart\": 35.0\n    },\n    {\n      \"ville\": \"casablanca\",\n      \"heurePassage\": \"2026-12-01T18:00:00\",\n      \"prixDepuisDepart\": 100.0\n    }\n  ]\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/trips",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "trips"]
+                },
+                "description": "Même ville répétée dans le parcours (400 Bad Request)."
+              }
+            },
+            {
+              "name": "400 - Date de départ dans le passé (R-11)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Driver-Id",
+                    "value": "{{driverId}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"vehicleId\": {{vehicleId}},\n  \"placesProposees\": 3,\n  \"stops\": [\n    {\n      \"ville\": \"Casablanca\",\n      \"heurePassage\": \"2020-01-01T14:00:00\",\n      \"prixDepuisDepart\": 0.0\n    },\n    {\n      \"ville\": \"Rabat\",\n      \"heurePassage\": \"2020-01-01T15:15:00\",\n      \"prixDepuisDepart\": 35.0\n    }\n  ]\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/trips",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "trips"]
+                },
+                "description": "Date de départ antérieure à la date actuelle (400 Bad Request)."
+              }
+            },
+            {
+              "name": "400 - Heures non chronologiques (R-11)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Driver-Id",
+                    "value": "{{driverId}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"vehicleId\": {{vehicleId}},\n  \"placesProposees\": 3,\n  \"stops\": [\n    {\n      \"ville\": \"Casablanca\",\n      \"heurePassage\": \"2026-12-01T16:00:00\",\n      \"prixDepuisDepart\": 0.0\n    },\n    {\n      \"ville\": \"Rabat\",\n      \"heurePassage\": \"2026-12-01T14:00:00\",\n      \"prixDepuisDepart\": 35.0\n    }\n  ]\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/trips",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "trips"]
+                },
+                "description": "Heure de passage d'une étape antérieure à celle de l'étape précédente (400 Bad Request)."
+              }
+            },
+            {
+              "name": "400 - Prix premier arrêt non nul (R-12)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Driver-Id",
+                    "value": "{{driverId}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"vehicleId\": {{vehicleId}},\n  \"placesProposees\": 3,\n  \"stops\": [\n    {\n      \"ville\": \"Casablanca\",\n      \"heurePassage\": \"2026-12-01T14:00:00\",\n      \"prixDepuisDepart\": 20.0\n    },\n    {\n      \"ville\": \"Rabat\",\n      \"heurePassage\": \"2026-12-01T15:15:00\",\n      \"prixDepuisDepart\": 35.0\n    }\n  ]\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/trips",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "trips"]
+                },
+                "description": "Premier arrêt avec prix différent de 0 (400 Bad Request)."
+              }
+            },
+            {
+              "name": "400 - Prix non strictement croissants (R-12)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Driver-Id",
+                    "value": "{{driverId}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"vehicleId\": {{vehicleId}},\n  \"placesProposees\": 3,\n  \"stops\": [\n    {\n      \"ville\": \"Casablanca\",\n      \"heurePassage\": \"2026-12-01T14:00:00\",\n      \"prixDepuisDepart\": 0.0\n    },\n    {\n      \"ville\": \"Rabat\",\n      \"heurePassage\": \"2026-12-01T15:15:00\",\n      \"prixDepuisDepart\": 50.0\n    },\n    {\n      \"ville\": \"Tanger\",\n      \"heurePassage\": \"2026-12-01T18:30:00\",\n      \"prixDepuisDepart\": 50.0\n    }\n  ]\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/trips",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "trips"]
+                },
+                "description": "Prix d'une étape inférieur ou égal à l'étape précédente (400 Bad Request)."
               }
             }
           ]
