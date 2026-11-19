@@ -34,3 +34,6 @@ build/
 
 ### Environment variables ###
 .env
+
+### Personal developer notes ###
+notes/
