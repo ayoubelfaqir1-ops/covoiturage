@@ -18,4 +18,6 @@ public interface TrajetRepository extends JpaRepository<Trajet, Long> {
             WHERE t.id = :id
             """)
     Optional<Trajet> findDetailById(@Param("id") Long id);
+
+    boolean existsByVehiculeId(Long vehiculeId);
 }

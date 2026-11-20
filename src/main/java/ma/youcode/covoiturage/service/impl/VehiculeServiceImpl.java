@@ -12,6 +12,7 @@ import ma.youcode.covoiturage.exception.InvalidRequestException;
 import ma.youcode.covoiturage.exception.ResourceNotFoundException;
 import ma.youcode.covoiturage.mapper.VehiculeMapper;
 import ma.youcode.covoiturage.repository.ConducteurRepository;
+import ma.youcode.covoiturage.repository.TrajetRepository;
 import ma.youcode.covoiturage.repository.VehiculeRepository;
 import ma.youcode.covoiturage.service.VehiculeService;
 import org.springframework.stereotype.Service;
@@ -27,6 +28,7 @@ public class VehiculeServiceImpl implements VehiculeService {
 
     private final VehiculeRepository vehiculeRepository;
     private final ConducteurRepository conducteurRepository;
+    private final TrajetRepository trajetRepository;
     private final VehiculeMapper vehiculeMapper;
 
     @Override
@@ -106,5 +108,23 @@ public class VehiculeServiceImpl implements VehiculeService {
             log.warn("Capacité de véhicule invalide : {}", capacite);
             throw new InvalidRequestException("La capacité du véhicule doit être comprise entre 1 et 8 places");
         }
+    }
+
+    @Override 
+    @Transactional
+    public void delete(Long driverId, Long id) {
+        // Vérification de l'existence (404)
+        Vehicule vehicule = vehiculeRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Véhicule non trouvé avec l'id : " + id));
+        // 2. R-07 / R-36 : Vérification de propriété (403)
+        if (vehicule.getConducteur() == null || !vehicule.getConducteur().getId().equals(driverId)) {
+            throw new ForbiddenOperationException("Vous n'êtes pas autorisé à supprimer le véhicule d'un autre conducteur");
+        }
+        // 3. R-08 : Vérification des trajets liés (409)
+        if (trajetRepository.existsByVehiculeId(id)) {
+            throw new BusinessRuleException("Impossible de supprimer un véhicule associé à un ou plusieurs trajets");
+        }
+        // 4. Suppression
+        vehiculeRepository.delete(vehicule);
     }
 }

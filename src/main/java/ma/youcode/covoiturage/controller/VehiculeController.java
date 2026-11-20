@@ -8,6 +8,7 @@ import ma.youcode.covoiturage.dto.request.VehiculeRequest;
 import ma.youcode.covoiturage.dto.response.VehiculeResponse;
 import ma.youcode.covoiturage.service.VehiculeService;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -60,5 +61,14 @@ public class VehiculeController {
             @RequestParam(value = "driverId", required = false) Long driverId) {
         Long targetDriverId = (actingDriverId != null) ? actingDriverId : driverId;
         return vehiculeService.findByDriver(targetDriverId);
+    }
+
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Operation(summary = "F-16 Supprimer un véhicule")
+    public void delete(
+            @RequestHeader("X-Driver-Id") Long actingDriverId,
+            @PathVariable Long id) {
+        vehiculeService.delete(actingDriverId, id);
     }
 }

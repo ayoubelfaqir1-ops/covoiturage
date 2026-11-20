@@ -11,6 +11,7 @@ import ma.youcode.covoiturage.entity.PointArret;
 import ma.youcode.covoiturage.entity.Trajet;
 import ma.youcode.covoiturage.entity.Vehicule;
 import ma.youcode.covoiturage.entity.enums.StatutTrajet;
+import ma.youcode.covoiturage.exception.BusinessRuleException;
 import ma.youcode.covoiturage.exception.ForbiddenOperationException;
 import ma.youcode.covoiturage.exception.InvalidRequestException;
 import ma.youcode.covoiturage.exception.ResourceNotFoundException;

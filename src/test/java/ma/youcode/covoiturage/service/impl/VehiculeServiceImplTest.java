@@ -10,6 +10,7 @@ import ma.youcode.covoiturage.exception.InvalidRequestException;
 import ma.youcode.covoiturage.exception.ResourceNotFoundException;
 import ma.youcode.covoiturage.mapper.VehiculeMapper;
 import ma.youcode.covoiturage.repository.ConducteurRepository;
+import ma.youcode.covoiturage.repository.TrajetRepository;
 import ma.youcode.covoiturage.repository.VehiculeRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -36,6 +37,9 @@ class VehiculeServiceImplTest {
 
     @Mock
     private ConducteurRepository conducteurRepository;
+
+    @Mock
+    private TrajetRepository trajetRepository;
 
     @Mock
     private VehiculeMapper vehiculeMapper;
@@ -231,5 +235,49 @@ class VehiculeServiceImplTest {
         assertThatThrownBy(() -> vehiculeService.findByDriver(99L))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("Conducteur non trouvé");
+    }
+
+    @Test
+    void delete_nominal_success() {
+        when(vehiculeRepository.findById(10L)).thenReturn(Optional.of(entity));
+        when(trajetRepository.existsByVehiculeId(10L)).thenReturn(false);
+
+        vehiculeService.delete(1L, 10L);
+
+        verify(vehiculeRepository).delete(entity);
+    }
+
+    @Test
+    void delete_notFound_throwsResourceNotFoundException() {
+        when(vehiculeRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> vehiculeService.delete(1L, 99L))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessageContaining("non trouvé");
+
+        verify(vehiculeRepository, never()).delete(any());
+    }
+
+    @Test
+    void delete_otherDriver_throwsForbiddenOperationException() {
+        when(vehiculeRepository.findById(10L)).thenReturn(Optional.of(entity));
+
+        assertThatThrownBy(() -> vehiculeService.delete(2L, 10L))
+                .isInstanceOf(ForbiddenOperationException.class)
+                .hasMessageContaining("pas autorisé à supprimer le véhicule d'un autre conducteur");
+
+        verify(vehiculeRepository, never()).delete(any());
+    }
+
+    @Test
+    void delete_linkedToTrips_throwsBusinessRuleException() {
+        when(vehiculeRepository.findById(10L)).thenReturn(Optional.of(entity));
+        when(trajetRepository.existsByVehiculeId(10L)).thenReturn(true);
+
+        assertThatThrownBy(() -> vehiculeService.delete(1L, 10L))
+                .isInstanceOf(BusinessRuleException.class)
+                .hasMessageContaining("Impossible de supprimer un véhicule associé à un ou plusieurs trajets");
+
+        verify(vehiculeRepository, never()).delete(any());
     }
 }

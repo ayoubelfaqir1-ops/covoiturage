@@ -14,4 +14,6 @@ public interface VehiculeService {
     VehiculeResponse findById(Long id);
 
     List<VehiculeResponse> findByDriver(Long driverId);
+    
+    void delete(Long driverId, Long id);
 }

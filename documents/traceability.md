@@ -10,8 +10,8 @@ Colonne « Appliquée dans » : emplacement **prévu** (voir `design.md`). Compl
 | R-04 | Email passager unique | `PassagerServiceImpl.create/update` | | | ☐ |
 | R-05 | Immatriculation unique | `VehiculeServiceImpl.create/update` | | | ☐ |
 | R-06 | Capacité 1 à 8 | Bean Validation `VehiculeRequest` | | | ☐ |
-| R-07 | Véhicule du conducteur propriétaire | `VehiculeServiceImpl.update/delete` | | | ☐ |
-| R-08 | Suppression si aucun trajet | `VehiculeServiceImpl.delete` | | | ☐ |
+| R-07 | Véhicule du conducteur propriétaire | `VehiculeServiceImpl.update/delete` | `delete_otherDriver_throwsForbiddenOperationException` | F-16 | ☑ |
+| R-08 | Suppression si aucun trajet | `VehiculeServiceImpl.delete` | `delete_linkedToTrips_throwsBusinessRuleException` | F-16 | ☑ |
 | R-09 | Au moins 2 points, départ = premier, arrivée = dernier | `TrajetServiceImpl.publish` | | | ☐ |
 | R-10 | Départ futur, heures strictement croissantes | `TrajetServiceImpl.publish` | | | ☐ |
 | R-11 | Ville unique sur le parcours | `TrajetServiceImpl.publish` | | | ☐ |

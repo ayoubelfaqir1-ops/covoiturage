@@ -522,6 +522,24 @@
                 },
                 "description": "Récupère l'ensemble des véhicules rattachés au conducteur connecté."
               }
+            },
+            {
+              "name": "F-16 : Supprimer un véhicule (204 No Content)",
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "X-Driver-Id",
+                    "value": "{{driverId}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/vehicles/{{vehicleId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "vehicles", "{{vehicleId}}"]
+                },
+                "description": "Suppression d'un véhicule sans trajets par son conducteur propriétaire."
+              }
             }
           ]
         },
@@ -618,6 +636,24 @@
                   "path": ["api", "vehicles"]
                 },
                 "description": "Immatriculation déjà existante refusée par la règle R-05 (409 Conflict)."
+              }
+            },
+            {
+              "name": "409 - Suppression véhicule lié à un trajet (R-08)",
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "X-Driver-Id",
+                    "value": "{{driverId}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/vehicles/{{vehicleId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "vehicles", "{{vehicleId}}"]
+                },
+                "description": "Suppression refusée si le véhicule a déjà été utilisé pour un trajet (409 Conflict)."
               }
             }
           ]
