@@ -28,7 +28,7 @@ Colonne « Appliquée dans » : emplacement **prévu** (voir `design.md`). Compl
 | R-22 | Une seule CONFIRMEE par passager et trajet | `ReservationServiceImpl.book` | | | ☐ |
 | R-23 | Annulation jusqu'à 24 h avant le départ | `ReservationServiceImpl.cancel` | | S-05, S-10 | ☐ |
 | R-24 | Montant = (prix descente − prix montée) × places | `ReservationServiceImpl.book` | | S-01, S-03 | ☐ |
-| R-25 | Places restantes calculées | `ReservationRepository.sumPlacesConfirmed`, `TrajetServiceImpl.findById` | | S-01 | ☐ |
+| R-25 | Places restantes calculées | `ReservationRepository.sumPlacesConfirmed`, `TrajetServiceImpl.findById` | `getTrajetDetail_Success` | S-01 / F-18 | ☑ |
 | R-26 | Statut PUBLIE ↔ COMPLET automatique | `ReservationServiceImpl.book/cancel` | | S-03, S-05 | ☐ |
 | R-27 | Passager : SES réservations seulement | `ReservationServiceImpl.cancel/findByPassager` | | | ☐ |
 | R-28 | Terminer seulement après le départ | `TrajetServiceImpl.finish` | | S-09 | ☐ |
@@ -36,7 +36,7 @@ Colonne « Appliquée dans » : emplacement **prévu** (voir `design.md`). Compl
 | R-30 | TERMINE / ANNULE = statuts finaux | `TrajetServiceImpl.finish/cancel` | | | ☐ |
 | R-31 | Conducteur : réservations de SES trajets | `TrajetServiceImpl.findReservations` | | | ☐ |
 | R-32 | Montants `BigDecimal` à 2 décimales | calcul du montant (un seul endroit) | | S-01, S-03 | ☐ |
-| R-33 | Places restantes et prix de segment non stockés | modèle (pas de colonne) + `search`/`findById` | | | ☐ |
+| R-33 | Places restantes et prix de segment non stockés | modèle (pas de colonne) + `search`/`findById` | `getTrajetDetail_Success` | F-18 | ☑ |
 | R-34 | Messages d'erreur clairs | `GlobalExceptionHandler` + exceptions | | | ☐ |
 | R-35 | Séparation des rôles | en-têtes + routes par rôle | | | ☐ |
 | R-36 | Profil : le sien seulement | `ConducteurServiceImpl.update`, `PassagerServiceImpl.findById/update` | | | ☐ |
@@ -48,5 +48,5 @@ Colonne « Appliquée dans » : emplacement **prévu** (voir `design.md`). Compl
 | T-09 | `ProblemDetail` avec timestamp, code, type, message, chemin | ☐ |
 | T-10 | INFO sur actions métier, WARN sur règles refusées | ☐ |
 | T-13 | Recherche = une seule requête JPQL | ☐ |
-| T-14 | Détail du trajet sans N+1 (vérifier les logs SQL) | ☐ |
+| T-14 | Détail du trajet sans N+1 (vérifier les logs SQL) | ☑ |
 | T-15 | `@Transactional` sur réservation, annulation de réservation, annulation de trajet | ☐ |

@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import ma.youcode.covoiturage.dto.request.PointArretRequest;
 import ma.youcode.covoiturage.dto.request.TrajetPublicationRequest;
+import ma.youcode.covoiturage.dto.response.TrajetDetailResponse;
 import ma.youcode.covoiturage.dto.response.TrajetResponse;
 import ma.youcode.covoiturage.entity.Conducteur;
 import ma.youcode.covoiturage.entity.PointArret;
@@ -15,6 +16,7 @@ import ma.youcode.covoiturage.exception.InvalidRequestException;
 import ma.youcode.covoiturage.exception.ResourceNotFoundException;
 import ma.youcode.covoiturage.mapper.TrajetMapper;
 import ma.youcode.covoiturage.repository.ConducteurRepository;
+import ma.youcode.covoiturage.repository.ReservationRepository;
 import ma.youcode.covoiturage.repository.TrajetRepository;
 import ma.youcode.covoiturage.repository.VehiculeRepository;
 import ma.youcode.covoiturage.service.TrajetService;
@@ -37,6 +39,7 @@ public class TrajetServiceImpl implements TrajetService {
     private final TrajetRepository trajetRepository;
     private final ConducteurRepository conducteurRepository;
     private final VehiculeRepository vehiculeRepository;
+    private final ReservationRepository reservationRepository;
     private final TrajetMapper trajetMapper;
     private final Clock clock;
 
@@ -142,5 +145,16 @@ public class TrajetServiceImpl implements TrajetService {
             }
         }
     }
-}
 
+    @Override 
+    public TrajetDetailResponse getTrajetDetail(Long id) {
+
+        Trajet trajet = trajetRepository.findDetailById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Trajet non trouvé avec l'id : " + id));
+
+        int placesOccupees = reservationRepository.sumPlacesConfirmedByTrajetId(trajet.getId());
+        int placesRestantes = Math.max(0, trajet.getPlacesProposees() - placesOccupees);
+
+        return trajetMapper.toDetailResponse(trajet, placesRestantes);
+    }
+}

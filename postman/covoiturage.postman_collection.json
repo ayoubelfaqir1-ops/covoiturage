@@ -625,7 +625,7 @@
       ]
     },
     {
-      "name": "4. Trajets (Trips) - COV-17",
+      "name": "4. Trajets (Trips) - COV-17 / COV-18",
       "item": [
         {
           "name": "Cas Nominaux",
@@ -671,6 +671,19 @@
                   "path": ["api", "trips"]
                 },
                 "description": "Publication nominale d'un trajet avec calcul automatique de l'ordre, du statut PUBLIE, et des villes de départ/arrivée."
+              }
+            },
+            {
+              "name": "F-18 : Consulter le détail d'un trajet (200 OK)",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/trips/{{tripId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "trips", "{{tripId}}"]
+                },
+                "description": "Consultation du détail d'un trajet (conducteur, véhicule, arrêts ordonnés, places restantes calculées)."
               }
             }
           ]
@@ -910,6 +923,19 @@
                   "path": ["api", "trips"]
                 },
                 "description": "Prix d'une étape inférieur ou égal à l'étape précédente (400 Bad Request)."
+              }
+            },
+            {
+              "name": "404 - Trajet inexistant (F-18)",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/trips/99999",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "trips", "99999"]
+                },
+                "description": "Consultation d'un trajet avec un id inconnu (404 Not Found)."
               }
             }
           ]

@@ -1,6 +1,7 @@
 package ma.youcode.covoiturage.mapper;
 
 import ma.youcode.covoiturage.dto.response.PointArretResponse;
+import ma.youcode.covoiturage.dto.response.TrajetDetailResponse;
 import ma.youcode.covoiturage.dto.response.TrajetResponse;
 import ma.youcode.covoiturage.entity.PointArret;
 import ma.youcode.covoiturage.entity.Trajet;
@@ -10,7 +11,11 @@ import org.mapstruct.ReportingPolicy;
 
 import java.util.List;
 
-@Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.IGNORE)
+@Mapper(
+    componentModel = "spring",
+    uses = {ConducteurMapper.class, VehiculeMapper.class},
+    unmappedTargetPolicy = ReportingPolicy.IGNORE
+)
 public interface TrajetMapper {
 
     @Mapping(source = "conducteur.id", target = "conducteurId")
@@ -22,4 +27,8 @@ public interface TrajetMapper {
     PointArretResponse toPointArretResponse(PointArret entity);
 
     List<PointArretResponse> toPointArretResponseList(List<PointArret> entities);
+
+    @Mapping(target = "id", source = "trajet.id")
+    @Mapping(target = "placesRestantes", source = "placesRestantes")
+    TrajetDetailResponse toDetailResponse(Trajet trajet, Integer placesRestantes);
 }

@@ -2,8 +2,11 @@ package ma.youcode.covoiturage.service.impl;
 
 import ma.youcode.covoiturage.dto.request.PointArretRequest;
 import ma.youcode.covoiturage.dto.request.TrajetPublicationRequest;
+import ma.youcode.covoiturage.dto.response.ConducteurResponse;
 import ma.youcode.covoiturage.dto.response.PointArretResponse;
+import ma.youcode.covoiturage.dto.response.TrajetDetailResponse;
 import ma.youcode.covoiturage.dto.response.TrajetResponse;
+import ma.youcode.covoiturage.dto.response.VehiculeResponse;
 import ma.youcode.covoiturage.entity.Conducteur;
 import ma.youcode.covoiturage.entity.Trajet;
 import ma.youcode.covoiturage.entity.Vehicule;
@@ -13,6 +16,7 @@ import ma.youcode.covoiturage.exception.InvalidRequestException;
 import ma.youcode.covoiturage.exception.ResourceNotFoundException;
 import ma.youcode.covoiturage.mapper.TrajetMapper;
 import ma.youcode.covoiturage.repository.ConducteurRepository;
+import ma.youcode.covoiturage.repository.ReservationRepository;
 import ma.youcode.covoiturage.repository.TrajetRepository;
 import ma.youcode.covoiturage.repository.VehiculeRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -51,6 +55,9 @@ class TrajetServiceImplTest {
     private VehiculeRepository vehiculeRepository;
 
     @Mock
+    private ReservationRepository reservationRepository;
+
+    @Mock
     private TrajetMapper trajetMapper;
 
     private TrajetServiceImpl trajetService;
@@ -71,6 +78,7 @@ class TrajetServiceImplTest {
                 trajetRepository,
                 conducteurRepository,
                 vehiculeRepository,
+                reservationRepository,
                 trajetMapper,
                 fixedClock
         );
@@ -333,5 +341,68 @@ class TrajetServiceImplTest {
                 .hasMessageContaining("Les prix depuis le départ doivent être strictement croissants");
 
         verify(trajetRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("F-18 : consultation réussie d'un trajet avec calcul dynamique des places restantes")
+    void getTrajetDetail_Success() {
+        Trajet trajet = Trajet.builder()
+                .id(1L)
+                .villeDepart("Casablanca")
+                .villeArrivee("Tanger")
+                .dateDepart(referenceNow.plusHours(2))
+                .placesProposees(3)
+                .statut(StatutTrajet.PUBLIE)
+                .conducteur(conducteur)
+                .vehicule(vehicule)
+                .build();
+
+        ConducteurResponse condResp = new ConducteurResponse(1L, "El Alami", "Karim", "karim@covoiturage.ma", "0612345678", "PERM-12345");
+        VehiculeResponse vehResp = new VehiculeResponse(10L, "Dacia", "Logan", "12345-A-1", "Blanc", 4, 1L);
+        List<PointArretResponse> stopResponses = List.of(
+                new PointArretResponse(100L, "Casablanca", 0, referenceNow.plusHours(2), BigDecimal.ZERO),
+                new PointArretResponse(101L, "Tanger", 1, referenceNow.plusHours(6), new BigDecimal("120.00"))
+        );
+
+        TrajetDetailResponse detailResponse = new TrajetDetailResponse(
+                1L,
+                "Casablanca",
+                "Tanger",
+                referenceNow.plusHours(2),
+                3,
+                2, // 3 - 1 = 2 places restantes
+                StatutTrajet.PUBLIE,
+                condResp,
+                vehResp,
+                stopResponses
+        );
+
+        when(trajetRepository.findDetailById(1L)).thenReturn(Optional.of(trajet));
+        when(reservationRepository.sumPlacesConfirmedByTrajetId(1L)).thenReturn(1); // 1 place réservée
+        when(trajetMapper.toDetailResponse(trajet, 2)).thenReturn(detailResponse);
+
+        TrajetDetailResponse result = trajetService.getTrajetDetail(1L);
+
+        assertThat(result).isNotNull();
+        assertThat(result.id()).isEqualTo(1L);
+        assertThat(result.placesProposees()).isEqualTo(3);
+        assertThat(result.placesRestantes()).isEqualTo(2);
+        assertThat(result.conducteur().nom()).isEqualTo("El Alami");
+        assertThat(result.vehicule().immatriculation()).isEqualTo("12345-A-1");
+
+        verify(trajetRepository).findDetailById(1L);
+        verify(reservationRepository).sumPlacesConfirmedByTrajetId(1L);
+    }
+
+    @Test
+    @DisplayName("F-18 : rejet si le trajet n'existe pas (404)")
+    void getTrajetDetail_ThrowsResourceNotFound_WhenNotFound() {
+        when(trajetRepository.findDetailById(99L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> trajetService.getTrajetDetail(99L))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessageContaining("Trajet non trouvé avec l'id : 99");
+
+        verify(reservationRepository, never()).sumPlacesConfirmedByTrajetId(any());
     }
 }
