@@ -3,9 +3,11 @@ package ma.youcode.covoiturage.service.impl;
 import ma.youcode.covoiturage.dto.request.PointArretRequest;
 import ma.youcode.covoiturage.dto.request.TrajetPublicationRequest;
 import ma.youcode.covoiturage.dto.response.ConducteurResponse;
+import ma.youcode.covoiturage.dto.response.PageResponse;
 import ma.youcode.covoiturage.dto.response.PointArretResponse;
 import ma.youcode.covoiturage.dto.response.TrajetDetailResponse;
 import ma.youcode.covoiturage.dto.response.TrajetResponse;
+import ma.youcode.covoiturage.dto.response.TrajetSearchResult;
 import ma.youcode.covoiturage.dto.response.VehiculeResponse;
 import ma.youcode.covoiturage.entity.Conducteur;
 import ma.youcode.covoiturage.entity.Trajet;
@@ -26,10 +28,15 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
@@ -404,5 +411,200 @@ class TrajetServiceImplTest {
                 .hasMessageContaining("Trajet non trouvé avec l'id : 99");
 
         verify(reservationRepository, never()).sumPlacesConfirmedByTrajetId(any());
+    }
+
+    // ==========================================
+    // F-20 : Rechercher des trajets (R-15 à R-18, T-13)
+    // ==========================================
+
+    @Test
+    @DisplayName("F-20 : recherche nominale avec retour paginé PageResponse (200 OK)")
+    void searchTrajets_Success() {
+        LocalDate searchDate = LocalDate.of(2026, 12, 1);
+        LocalDateTime startOfDay = searchDate.atStartOfDay();
+        LocalDateTime endOfDay = searchDate.plusDays(1).atStartOfDay();
+
+        TrajetSearchResult resultDto = new TrajetSearchResult(
+                1L,
+                "El Alami",
+                "Karim",
+                "Casablanca",
+                startOfDay.plusHours(14),
+                "Rabat",
+                startOfDay.plusHours(15).plusMinutes(15),
+                new BigDecimal("35.00"),
+                3L,
+                StatutTrajet.PUBLIE
+        );
+
+        Page<TrajetSearchResult> pageMock = new PageImpl<>(List.of(resultDto), PageRequest.of(0, 10), 1);
+
+        when(trajetRepository.search(
+                "Casablanca",
+                "Rabat",
+                startOfDay,
+                endOfDay,
+                2,
+                new BigDecimal("50.00"),
+                PageRequest.of(0, 10)
+        )).thenReturn(pageMock);
+
+        PageResponse<TrajetSearchResult> response = trajetService.searchTrajets(
+                "Casablanca",
+                "Rabat",
+                searchDate,
+                2,
+                new BigDecimal("50.00"),
+                PageRequest.of(0, 10)
+        );
+
+        assertThat(response).isNotNull();
+        assertThat(response.totalElements()).isEqualTo(1);
+        assertThat(response.totalPages()).isEqualTo(1);
+        assertThat(response.page()).isEqualTo(0);
+        assertThat(response.size()).isEqualTo(10);
+        assertThat(response.first()).isTrue();
+        assertThat(response.last()).isTrue();
+        assertThat(response.empty()).isFalse();
+        assertThat(response.content()).hasSize(1);
+
+        TrajetSearchResult item = response.content().get(0);
+        assertThat(item.trajetId()).isEqualTo(1L);
+        assertThat(item.conducteurNom()).isEqualTo("El Alami");
+        assertThat(item.villeDepart()).isEqualTo("Casablanca");
+        assertThat(item.villeArrivee()).isEqualTo("Rabat");
+        assertThat(item.prixSegment()).isEqualByComparingTo("35.00");
+        assertThat(item.placesRestantes()).isEqualTo(3L);
+
+        verify(trajetRepository).search(
+                "Casablanca",
+                "Rabat",
+                startOfDay,
+                endOfDay,
+                2,
+                new BigDecimal("50.00"),
+                PageRequest.of(0, 10)
+        );
+    }
+
+    @Test
+    @DisplayName("F-20 : rejet si departureCity est vide ou null (400)")
+    void searchTrajets_ThrowsInvalidRequest_WhenDepartureCityMissing() {
+        LocalDate searchDate = LocalDate.of(2026, 12, 1);
+
+        assertThatThrownBy(() -> trajetService.searchTrajets(
+                "   ",
+                "Rabat",
+                searchDate,
+                1,
+                null,
+                PageRequest.of(0, 10)
+        ))
+                .isInstanceOf(InvalidRequestException.class)
+                .hasMessageContaining("La ville de départ est obligatoire");
+
+        verify(trajetRepository, never()).search(any(), any(), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("F-20 : rejet si arrivalCity est vide ou null (400)")
+    void searchTrajets_ThrowsInvalidRequest_WhenArrivalCityMissing() {
+        LocalDate searchDate = LocalDate.of(2026, 12, 1);
+
+        assertThatThrownBy(() -> trajetService.searchTrajets(
+                "Casablanca",
+                null,
+                searchDate,
+                1,
+                null,
+                PageRequest.of(0, 10)
+        ))
+                .isInstanceOf(InvalidRequestException.class)
+                .hasMessageContaining("La ville d'arrivée est obligatoire");
+
+        verify(trajetRepository, never()).search(any(), any(), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("F-20 : rejet si date est nulle (400)")
+    void searchTrajets_ThrowsInvalidRequest_WhenDateMissing() {
+        assertThatThrownBy(() -> trajetService.searchTrajets(
+                "Casablanca",
+                "Rabat",
+                null,
+                1,
+                null,
+                PageRequest.of(0, 10)
+        ))
+                .isInstanceOf(InvalidRequestException.class)
+                .hasMessageContaining("La date de départ est obligatoire");
+
+        verify(trajetRepository, never()).search(any(), any(), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("F-20 : rejet si seats est inférieur à 1 (400)")
+    void searchTrajets_ThrowsInvalidRequest_WhenSeatsLessThanOne() {
+        LocalDate searchDate = LocalDate.of(2026, 12, 1);
+
+        assertThatThrownBy(() -> trajetService.searchTrajets(
+                "Casablanca",
+                "Rabat",
+                searchDate,
+                0,
+                null,
+                PageRequest.of(0, 10)
+        ))
+                .isInstanceOf(InvalidRequestException.class)
+                .hasMessageContaining("Le nombre de places demandées doit être au moins de 1");
+
+        verify(trajetRepository, never()).search(any(), any(), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("F-20 : rejet si maxPrice est négatif ou zéro (400)")
+    void searchTrajets_ThrowsInvalidRequest_WhenMaxPriceNegativeOrZero() {
+        LocalDate searchDate = LocalDate.of(2026, 12, 1);
+
+        assertThatThrownBy(() -> trajetService.searchTrajets(
+                "Casablanca",
+                "Rabat",
+                searchDate,
+                1,
+                BigDecimal.ZERO,
+                PageRequest.of(0, 10)
+        ))
+                .isInstanceOf(InvalidRequestException.class)
+                .hasMessageContaining("Le prix maximum doit être strictement positif");
+
+        verify(trajetRepository, never()).search(any(), any(), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("F-20 : plafonnement de size à 50 max lorsque size demandé est 100")
+    void searchTrajets_ClampsSizeTo50() {
+        LocalDate searchDate = LocalDate.of(2026, 12, 1);
+        LocalDateTime startOfDay = searchDate.atStartOfDay();
+        LocalDateTime endOfDay = searchDate.plusDays(1).atStartOfDay();
+
+        Page<TrajetSearchResult> emptyPage = new PageImpl<>(List.of(), PageRequest.of(0, 50), 0);
+
+        ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
+
+        when(trajetRepository.search(
+                any(), any(), any(), any(), any(), any(), pageableCaptor.capture()
+        )).thenReturn(emptyPage);
+
+        PageResponse<TrajetSearchResult> response = trajetService.searchTrajets(
+                "Casablanca",
+                "Rabat",
+                searchDate,
+                null, // seats null -> défaut 1
+                null,
+                PageRequest.of(0, 100) // demande 100
+        );
+
+        assertThat(response).isNotNull();
+        assertThat(pageableCaptor.getValue().getPageSize()).isEqualTo(50); // Plafonné à 50
     }
 }

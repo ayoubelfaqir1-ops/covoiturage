@@ -661,7 +661,7 @@
       ]
     },
     {
-      "name": "4. Trajets (Trips) - COV-17 / COV-18",
+      "name": "4. Trajets (Trips) - COV-17 / COV-18 / COV-20",
       "item": [
         {
           "name": "Cas Nominaux",
@@ -720,6 +720,27 @@
                   "path": ["api", "trips", "{{tripId}}"]
                 },
                 "description": "Consultation du détail d'un trajet (conducteur, véhicule, arrêts ordonnés, places restantes calculées)."
+              }
+            },
+            {
+              "name": "F-20 : Rechercher des trajets (200 OK - Scénario S-02)",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/trips/search?departureCity=Casablanca&arrivalCity=Rabat&date=2026-12-01&seats=1&page=0&size=10",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "trips", "search"],
+                  "query": [
+                    { "key": "departureCity", "value": "Casablanca" },
+                    { "key": "arrivalCity", "value": "Rabat" },
+                    { "key": "date", "value": "2026-12-01" },
+                    { "key": "seats", "value": "1" },
+                    { "key": "page", "value": "0" },
+                    { "key": "size", "value": "10" }
+                  ]
+                },
+                "description": "Recherche de trajets avec pagination, calcul du prix de segment et places restantes (R-15 à R-18, S-02)."
               }
             }
           ]

@@ -4,14 +4,15 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import ma.youcode.covoiturage.dto.request.PointArretRequest;
 import ma.youcode.covoiturage.dto.request.TrajetPublicationRequest;
+import ma.youcode.covoiturage.dto.response.PageResponse;
 import ma.youcode.covoiturage.dto.response.TrajetDetailResponse;
 import ma.youcode.covoiturage.dto.response.TrajetResponse;
+import ma.youcode.covoiturage.dto.response.TrajetSearchResult;
 import ma.youcode.covoiturage.entity.Conducteur;
 import ma.youcode.covoiturage.entity.PointArret;
 import ma.youcode.covoiturage.entity.Trajet;
 import ma.youcode.covoiturage.entity.Vehicule;
 import ma.youcode.covoiturage.entity.enums.StatutTrajet;
-import ma.youcode.covoiturage.exception.BusinessRuleException;
 import ma.youcode.covoiturage.exception.ForbiddenOperationException;
 import ma.youcode.covoiturage.exception.InvalidRequestException;
 import ma.youcode.covoiturage.exception.ResourceNotFoundException;
@@ -21,11 +22,15 @@ import ma.youcode.covoiturage.repository.ReservationRepository;
 import ma.youcode.covoiturage.repository.TrajetRepository;
 import ma.youcode.covoiturage.repository.VehiculeRepository;
 import ma.youcode.covoiturage.service.TrajetService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.Clock;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
@@ -157,5 +162,60 @@ public class TrajetServiceImpl implements TrajetService {
         int placesRestantes = Math.max(0, trajet.getPlacesProposees() - placesOccupees);
 
         return trajetMapper.toDetailResponse(trajet, placesRestantes);
+    }
+
+    @Override
+    public PageResponse<TrajetSearchResult> searchTrajets(
+            String departureCity,
+            String arrivalCity,
+            LocalDate date,
+            Integer seats,
+            BigDecimal maxPrice,
+            Pageable pageable) {
+
+        // 1. Validation des paramètres obligatoires (Règles F-20)
+        if (departureCity == null || departureCity.trim().isEmpty()) {
+            throw new InvalidRequestException("La ville de départ est obligatoire");
+        }
+        if (arrivalCity == null || arrivalCity.trim().isEmpty()) {
+            throw new InvalidRequestException("La ville d'arrivée est obligatoire");
+        }
+        if (date == null) {
+            throw new InvalidRequestException("La date de départ est obligatoire");
+        }
+
+        // 2. Gestion des valeurs par défaut et contraintes
+        int effectiveSeats = (seats != null) ? seats : 1;
+        if (effectiveSeats < 1) {
+            throw new InvalidRequestException("Le nombre de places demandées doit être au moins de 1");
+        }
+
+        if (maxPrice != null && maxPrice.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new InvalidRequestException("Le prix maximum doit être strictement positif");
+        }
+
+        // 3. Plafonner la taille de page à 50 max (exigence F-20 : défaut 10, max 50)
+        int requestedSize = (pageable != null && pageable.getPageSize() > 0) ? pageable.getPageSize() : 10;
+        int safeSize = Math.min(requestedSize, 50);
+        int pageNumber = (pageable != null && pageable.getPageNumber() >= 0) ? pageable.getPageNumber() : 0;
+        Pageable safePageable = PageRequest.of(pageNumber, safeSize);
+
+        // 4. Délimitation de la journée : du début (00:00:00) au début du jour suivant
+        LocalDateTime startOfDay = date.atStartOfDay();
+        LocalDateTime endOfDay = date.plusDays(1).atStartOfDay();
+
+        // 5. Exécution de la requête JPQL unique
+        Page<TrajetSearchResult> page = trajetRepository.search(
+                departureCity.trim(),
+                arrivalCity.trim(),
+                startOfDay,
+                endOfDay,
+                effectiveSeats,
+                maxPrice,
+                safePageable
+        );
+
+        // 6. Encapsulation dans le contrat PageResponse
+        return PageResponse.from(page);
     }
 }

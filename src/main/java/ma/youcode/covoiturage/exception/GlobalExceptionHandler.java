@@ -7,6 +7,7 @@ import org.springframework.http.ProblemDetail;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingRequestHeaderException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
@@ -86,7 +87,11 @@ public class GlobalExceptionHandler {
         return problemDetail;
     }
 
-    @ExceptionHandler({MissingRequestHeaderException.class, MethodArgumentTypeMismatchException.class})
+    @ExceptionHandler({
+            MissingRequestHeaderException.class,
+            MissingServletRequestParameterException.class,
+            MethodArgumentTypeMismatchException.class
+    })
     public ProblemDetail handleHeaderOrTypeMismatch(Exception ex, HttpServletRequest request) {
         log.warn("Bad header or parameter: {}", ex.getMessage());
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());

@@ -5,9 +5,14 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import ma.youcode.covoiturage.dto.request.TrajetPublicationRequest;
+import ma.youcode.covoiturage.dto.response.PageResponse;
 import ma.youcode.covoiturage.dto.response.TrajetDetailResponse;
 import ma.youcode.covoiturage.dto.response.TrajetResponse;
+import ma.youcode.covoiturage.dto.response.TrajetSearchResult;
 import ma.youcode.covoiturage.service.TrajetService;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -15,8 +20,12 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
 
 @RestController
 @RequestMapping("/api/trips")
@@ -39,5 +48,17 @@ public class TrajetController {
     @Operation(summary = "F-18 Consulter le détail d'un trajet")
     public TrajetDetailResponse getTrajetDetail(@PathVariable Long id) {
         return trajetService.getTrajetDetail(id);
+    }
+
+    @GetMapping("/search")
+    @Operation(summary = "F-20 Rechercher des trajets")
+    public PageResponse<TrajetSearchResult> searchTrajets(
+            @RequestParam String departureCity,
+            @RequestParam String arrivalCity,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+            @RequestParam(defaultValue = "1") Integer seats,
+            @RequestParam(required = false) BigDecimal maxPrice,
+            @PageableDefault(page = 0, size = 10) Pageable pageable) {
+        return trajetService.searchTrajets(departureCity, arrivalCity, date, seats, maxPrice, pageable);
     }
 }
