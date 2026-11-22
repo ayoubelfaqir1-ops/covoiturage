@@ -6,9 +6,11 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import ma.youcode.covoiturage.dto.request.TrajetPublicationRequest;
 import ma.youcode.covoiturage.dto.response.PageResponse;
+import ma.youcode.covoiturage.dto.response.ReservationResponse;
 import ma.youcode.covoiturage.dto.response.TrajetDetailResponse;
 import ma.youcode.covoiturage.dto.response.TrajetResponse;
 import ma.youcode.covoiturage.dto.response.TrajetSearchResult;
+import ma.youcode.covoiturage.service.ReservationService;
 import ma.youcode.covoiturage.service.TrajetService;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -26,6 +28,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/trips")
@@ -34,6 +37,7 @@ import java.time.LocalDate;
 public class TrajetController {
 
     private final TrajetService trajetService;
+    private final ReservationService reservationService;
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
@@ -48,6 +52,14 @@ public class TrajetController {
     @Operation(summary = "F-18 Consulter le détail d'un trajet")
     public TrajetDetailResponse getTrajetDetail(@PathVariable Long id) {
         return trajetService.getTrajetDetail(id);
+    }
+
+    @GetMapping("/{id}/reservations")
+    @Operation(summary = "F-19 Consulter les réservations de ses trajets")
+    public List<ReservationResponse> getReservationsByTrajet(
+            @RequestHeader("X-Driver-Id") Long driverId,
+            @PathVariable Long id) {
+        return reservationService.findByTrajet(driverId, id);
     }
 
     @GetMapping("/search")
