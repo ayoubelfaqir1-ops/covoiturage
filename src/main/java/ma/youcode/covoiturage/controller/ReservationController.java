@@ -8,6 +8,8 @@ import ma.youcode.covoiturage.dto.request.ReservationRequest;
 import ma.youcode.covoiturage.dto.response.ReservationResponse;
 import ma.youcode.covoiturage.service.ReservationService;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -30,5 +32,14 @@ public class ReservationController {
             @RequestHeader("X-Passenger-Id") Long passengerId,
             @Valid @RequestBody ReservationRequest request) {
         return reservationService.book(passengerId, request);
+    }
+
+    @PatchMapping("/{id}/cancel")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Operation(summary = "F-22 Annuler sa réservation")
+    public void cancel(
+            @RequestHeader("X-Passenger-Id") Long passengerId,
+            @PathVariable Long id) {
+        reservationService.cancel(passengerId, id);
     }
 }

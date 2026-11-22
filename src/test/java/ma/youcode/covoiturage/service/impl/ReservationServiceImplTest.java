@@ -9,6 +9,7 @@ import ma.youcode.covoiturage.entity.Trajet;
 import ma.youcode.covoiturage.entity.enums.StatutReservation;
 import ma.youcode.covoiturage.entity.enums.StatutTrajet;
 import ma.youcode.covoiturage.exception.BusinessRuleException;
+import ma.youcode.covoiturage.exception.ForbiddenOperationException;
 import ma.youcode.covoiturage.exception.InvalidRequestException;
 import ma.youcode.covoiturage.exception.ResourceNotFoundException;
 import ma.youcode.covoiturage.mapper.ReservationMapper;
@@ -329,5 +330,161 @@ class ReservationServiceImplTest {
         assertThatThrownBy(() -> reservationService.book(1L, request))
                 .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("Nombre de places insuffisant (demandées : 2, restantes : 1)");
+    }
+
+    // ==========================================
+    // F-22 : Annuler sa réservation (R-23, R-26, R-27, T-15)
+    // ==========================================
+
+    @Test
+    @DisplayName("F-22 : annulation nominale réussie à plus de 24h du départ (204 No Content - S-05)")
+    void cancel_Success_Nominal() {
+        Reservation reservation = Reservation.builder()
+                .id(50L)
+                .passager(passager)
+                .trajet(trajet)
+                .pointArretMontee(stopCasa) // Demain à 12:00 (dans 26 heures par rapport à referenceNow 10:00)
+                .pointArretDescente(stopRabat)
+                .nombrePlaces(2)
+                .montantTotal(new BigDecimal("70.00"))
+                .statut(StatutReservation.CONFIRMEE)
+                .build();
+
+        when(reservationRepository.findById(50L)).thenReturn(Optional.of(reservation));
+        when(trajetRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(trajet));
+
+        reservationService.cancel(1L, 50L);
+
+        assertThat(reservation.getStatut()).isEqualTo(StatutReservation.ANNULEE);
+        verify(reservationRepository).save(reservation);
+    }
+
+    @Test
+    @DisplayName("F-22 : transition automatique du trajet de COMPLET vers PUBLIE lors d'une annulation (R-26)")
+    void cancel_Success_TransitionsCompletToPublie() {
+        trajet.marquerComplet(); // Trajet était COMPLET
+
+        Reservation reservation = Reservation.builder()
+                .id(50L)
+                .passager(passager)
+                .trajet(trajet)
+                .pointArretMontee(stopCasa) // Dans 26h
+                .pointArretDescente(stopRabat)
+                .nombrePlaces(2)
+                .montantTotal(new BigDecimal("70.00"))
+                .statut(StatutReservation.CONFIRMEE)
+                .build();
+
+        when(reservationRepository.findById(50L)).thenReturn(Optional.of(reservation));
+        when(trajetRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(trajet));
+
+        reservationService.cancel(1L, 50L);
+
+        assertThat(reservation.getStatut()).isEqualTo(StatutReservation.ANNULEE);
+        assertThat(trajet.getStatut()).isEqualTo(StatutTrajet.PUBLIE); // Repassé à PUBLIE
+    }
+
+    @Test
+    @DisplayName("F-22 : annulation acceptée à exactement 24h avant le départ (R-23)")
+    void cancel_Success_Exactly24HoursBeforeDeparture() {
+        // Départ exactement dans 24 heures (2026-11-21 à 10:00:00)
+        stopCasa = PointArret.builder()
+                .id(101L).ville("Casablanca").ordre(0)
+                .heurePassage(referenceNow.plusHours(24))
+                .prixDepuisDepart(BigDecimal.ZERO).build();
+
+        Reservation reservation = Reservation.builder()
+                .id(50L)
+                .passager(passager)
+                .trajet(trajet)
+                .pointArretMontee(stopCasa)
+                .pointArretDescente(stopRabat)
+                .nombrePlaces(1)
+                .statut(StatutReservation.CONFIRMEE)
+                .build();
+
+        when(reservationRepository.findById(50L)).thenReturn(Optional.of(reservation));
+        when(trajetRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(trajet));
+
+        // Exactement 24h avant : doit être accepté sans lever d'exception
+        reservationService.cancel(1L, 50L);
+
+        assertThat(reservation.getStatut()).isEqualTo(StatutReservation.ANNULEE);
+    }
+
+    @Test
+    @DisplayName("F-22 : rejet si la réservation n'existe pas (404)")
+    void cancel_ThrowsNotFound_WhenReservationNotFound() {
+        when(reservationRepository.findById(999L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> reservationService.cancel(1L, 999L))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessageContaining("Réservation non trouvée avec l'id : 999");
+    }
+
+    @Test
+    @DisplayName("F-22 : rejet si un passager tente d'annuler la réservation d'un autre (403 / R-27)")
+    void cancel_ThrowsForbidden_WhenNotOwner() {
+        Reservation reservation = Reservation.builder()
+                .id(50L)
+                .passager(passager) // Propriétaire = passager 1L
+                .trajet(trajet)
+                .pointArretMontee(stopCasa)
+                .statut(StatutReservation.CONFIRMEE)
+                .build();
+
+        when(reservationRepository.findById(50L)).thenReturn(Optional.of(reservation));
+
+        // Passager 2L tente d'annuler la réservation du passager 1L
+        assertThatThrownBy(() -> reservationService.cancel(2L, 50L))
+                .isInstanceOf(ForbiddenOperationException.class)
+                .hasMessageContaining("Vous ne pouvez annuler que vos propres réservations");
+
+        verify(trajetRepository, never()).findByIdForUpdate(any());
+    }
+
+    @Test
+    @DisplayName("F-22 : rejet si la réservation est déjà annulée (409)")
+    void cancel_ThrowsBusinessRule_WhenAlreadyCancelled() {
+        Reservation reservation = Reservation.builder()
+                .id(50L)
+                .passager(passager)
+                .trajet(trajet)
+                .pointArretMontee(stopCasa)
+                .statut(StatutReservation.ANNULEE) // Déjà annulée
+                .build();
+
+        when(reservationRepository.findById(50L)).thenReturn(Optional.of(reservation));
+
+        assertThatThrownBy(() -> reservationService.cancel(1L, 50L))
+                .isInstanceOf(BusinessRuleException.class)
+                .hasMessageContaining("Cette réservation est déjà annulée");
+
+        verify(trajetRepository, never()).findByIdForUpdate(any());
+    }
+
+    @Test
+    @DisplayName("F-22 : rejet si annulation à moins de 24h avant le départ (409 / R-23 / S-10)")
+    void cancel_ThrowsBusinessRule_WhenLessThan24HoursBeforeDeparture() {
+        // Départ dans seulement 2 heures (par exemple referenceNow + 2h)
+        stopCasa = PointArret.builder()
+                .id(101L).ville("Casablanca").ordre(0)
+                .heurePassage(referenceNow.plusHours(2))
+                .prixDepuisDepart(BigDecimal.ZERO).build();
+
+        Reservation reservation = Reservation.builder()
+                .id(50L)
+                .passager(passager)
+                .trajet(trajet)
+                .pointArretMontee(stopCasa)
+                .statut(StatutReservation.CONFIRMEE)
+                .build();
+
+        when(reservationRepository.findById(50L)).thenReturn(Optional.of(reservation));
+        when(trajetRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(trajet));
+
+        assertThatThrownBy(() -> reservationService.cancel(1L, 50L))
+                .isInstanceOf(BusinessRuleException.class)
+                .hasMessageContaining("Impossible d'annuler une réservation moins de 24 heures avant le départ");
     }
 }

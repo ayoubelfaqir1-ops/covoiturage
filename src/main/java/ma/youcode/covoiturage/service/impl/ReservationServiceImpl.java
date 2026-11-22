@@ -11,6 +11,7 @@ import ma.youcode.covoiturage.entity.Trajet;
 import ma.youcode.covoiturage.entity.enums.StatutReservation;
 import ma.youcode.covoiturage.entity.enums.StatutTrajet;
 import ma.youcode.covoiturage.exception.BusinessRuleException;
+import ma.youcode.covoiturage.exception.ForbiddenOperationException;
 import ma.youcode.covoiturage.exception.InvalidRequestException;
 import ma.youcode.covoiturage.exception.ResourceNotFoundException;
 import ma.youcode.covoiturage.mapper.ReservationMapper;
@@ -122,5 +123,55 @@ public class ReservationServiceImpl implements ReservationService {
         }
 
         return reservationMapper.toResponse(savedReservation);
+    }
+
+    @Override
+    @Transactional
+    public void cancel(Long passengerId, Long reservationId) {
+        log.info("Tentative d'annulation de la réservation #{} par le passager {}", reservationId, passengerId);
+
+        // 1. Recherche de la réservation (404 si introuvable)
+        Reservation reservation = reservationRepository.findById(reservationId)
+                .orElseThrow(() -> new ResourceNotFoundException("Réservation non trouvée avec l'id : " + reservationId));
+
+        // 2. Vérification propriétaire : passager annule SES propres réservations seulement (403 - R-27)
+        if (!reservation.getPassager().getId().equals(passengerId)) {
+            log.warn("Tentative d'annulation interdite : passager {} sur réservation #{} appartenant au passager {}",
+                    passengerId, reservationId, reservation.getPassager().getId());
+            throw new ForbiddenOperationException("Vous ne pouvez annuler que vos propres réservations");
+        }
+
+        // 3. Vérification réservation pas déjà annulée (409)
+        if (reservation.getStatut() == StatutReservation.ANNULEE) {
+            throw new BusinessRuleException("Cette réservation est déjà annulée");
+        }
+
+        // 4. Verrouillage pessimiste du trajet pour mise à jour concurrente sécurisée (T-15)
+        Trajet trajet = trajetRepository.findByIdForUpdate(reservation.getTrajet().getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Trajet associé non trouvé avec l'id : " + reservation.getTrajet().getId()));
+
+        // 5. Règle des 24 h : annulation possible jusqu'à 24 h avant le départ (409 - R-23 / S-10)
+        // Moins de 24 h avant -> 409 ; exactement 24 h avant -> accepté
+        LocalDateTime now = LocalDateTime.now(clock);
+        LocalDateTime departureTime = (reservation.getPointArretMontee() != null)
+                ? reservation.getPointArretMontee().getHeurePassage()
+                : trajet.getDateDepart();
+
+        if (now.plusHours(24).isAfter(departureTime)) {
+            log.warn("Annulation de la réservation #{} refusée : délai de 24h dépassé (now: {}, départ: {})",
+                    reservationId, now, departureTime);
+            throw new BusinessRuleException("Impossible d'annuler une réservation moins de 24 heures avant le départ");
+        }
+
+        // 6. Annulation de la réservation
+        reservation.annuler();
+        reservationRepository.save(reservation);
+        log.info("Réservation #{} annulée avec succès", reservationId);
+
+        // 7. Bascule automatique : un trajet COMPLET redevient PUBLIE (R-26 / S-05)
+        if (trajet.getStatut() == StatutTrajet.COMPLET) {
+            trajet.reouvrir();
+            log.info("Trajet #{} repassé automatiquement au statut PUBLIE suite à libération de places", trajet.getId());
+        }
     }
 }

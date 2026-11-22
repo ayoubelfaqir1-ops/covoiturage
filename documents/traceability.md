@@ -26,11 +26,11 @@ Colonne « Appliquée dans » : emplacement **prévu** (voir `design.md`). Compl
 | R-20 | Points du trajet, montée avant descente | `ReservationServiceImpl.book` | `book_ThrowsInvalidRequest_WhenStopsWrongOrder` | S-06 | ☑ |
 | R-21 | Places réservées ≤ places proposées | `ReservationServiceImpl.book` | `book_ThrowsBusinessRule_WhenNotEnoughSeatsRemaining` | | ☑ |
 | R-22 | Une seule CONFIRMEE par passager et trajet | `ReservationServiceImpl.book` | `book_ThrowsBusinessRule_WhenPassengerAlreadyHasConfirmedReservation` | | ☑ |
-| R-23 | Annulation jusqu'à 24 h avant le départ | `ReservationServiceImpl.cancel` | | S-05, S-10 | ☐ |
+| R-23 | Annulation jusqu'à 24 h avant le départ | `ReservationServiceImpl.cancel` | `cancel_Success_Nominal`, `cancel_ThrowsBusinessRule_WhenLessThan24HoursBeforeDeparture`, `cancel_Success_Exactly24HoursBeforeDeparture` | S-05, S-10 | ☑ |
 | R-24 | Montant = (prix descente − prix montée) × places | `ReservationServiceImpl.book` | `book_Success_Nominal` | S-01, S-03 | ☑ |
 | R-25 | Places restantes calculées | `ReservationRepository.sumPlacesConfirmed`, `TrajetServiceImpl.findById` | `getTrajetDetail_Success`, `book_Success_Nominal` | S-01 / F-18 | ☑ |
-| R-26 | Statut PUBLIE ↔ COMPLET automatique | `ReservationServiceImpl.book/cancel` | `book_Success_TransitionsToComplet_WhenAllSeatsBooked` | S-03, S-05 | ☑ |
-| R-27 | Passager : SES réservations seulement | `ReservationServiceImpl.cancel/findByPassager` | | | ☐ |
+| R-26 | Statut PUBLIE ↔ COMPLET automatique | `ReservationServiceImpl.book/cancel` | `book_Success_TransitionsToComplet_WhenAllSeatsBooked`, `cancel_Success_TransitionsCompletToPublie` | S-03, S-05 | ☑ |
+| R-27 | Passager : SES réservations seulement | `ReservationServiceImpl.cancel/findByPassager` | `cancel_ThrowsForbidden_WhenNotOwner` | | ☑ |
 | R-28 | Terminer seulement après le départ | `TrajetServiceImpl.finish` | | S-09 | ☐ |
 | R-29 | Annuler trajet + réservations ensemble | `TrajetServiceImpl.cancel` (`@Transactional`) | | S-11 | ☐ |
 | R-30 | TERMINE / ANNULE = statuts finaux | `TrajetServiceImpl.finish/cancel` | | | ☐ |

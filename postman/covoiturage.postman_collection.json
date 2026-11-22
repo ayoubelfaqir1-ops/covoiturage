@@ -1000,7 +1000,7 @@
       ]
     },
     {
-      "name": "5. Réservations (Bookings) - COV-21 (F-21)",
+      "name": "5. Réservations (Bookings) - COV-21 / COV-22 (F-21 / F-22)",
       "item": [
         {
           "name": "Cas Nominaux",
@@ -1030,12 +1030,81 @@
                 },
                 "description": "Réservation nominale avec calcul du montant et statut CONFIRMEE (R-19..R-26, S-01)."
               }
+            },
+            {
+              "name": "F-22 : Annuler sa réservation (204 No Content - Scénario S-05)",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "X-Passenger-Id",
+                    "value": "{{passengerId}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/reservations/{{reservationId}}/cancel",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "reservations", "{{reservationId}}", "cancel"]
+                },
+                "description": "Annulation d'une réservation à plus de 24h du départ ; un trajet COMPLET redevient PUBLIE (R-23, R-26, R-27, S-05)."
+              }
             }
           ]
         },
         {
           "name": "Cas d'Erreurs & Règles Métier",
           "item": [
+            {
+              "name": "403 - Annulation d'un autre passager (R-27)",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "X-Passenger-Id",
+                    "value": "99999"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/reservations/{{reservationId}}/cancel",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "reservations", "{{reservationId}}", "cancel"]
+                }
+              }
+            },
+            {
+              "name": "409 - Annulation moins de 24h avant départ (R-23 / S-10)",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "X-Passenger-Id",
+                    "value": "{{passengerId}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/reservations/{{reservationId}}/cancel",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "reservations", "{{reservationId}}", "cancel"]
+                }
+              }
+            },
+            {
+              "name": "409 - Annulation réservation déjà annulée (F-22)",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "X-Passenger-Id",
+                    "value": "{{passengerId}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/reservations/{{reservationId}}/cancel",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "reservations", "{{reservationId}}", "cancel"]
+                }
+              }
+            },
             {
               "name": "400 - Villes invalides ou montée après descente (R-20 / S-06)",
               "request": {
