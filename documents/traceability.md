@@ -22,14 +22,14 @@ Colonne « Appliquée dans » : emplacement **prévu** (voir `design.md`). Compl
 | R-16 | Villes = points du parcours, bon sens | `TrajetRepository.search` | `searchTrajets_Success` | S-02 | ☑ |
 | R-17 | Prix max sur le segment | `TrajetRepository.search` | `searchTrajets_Success` | S-02 | ☑ |
 | R-18 | Pagination, tri par heure de départ | `TrajetRepository.search` | `searchTrajets_Success`, `searchTrajets_ClampsSizeTo50` | S-02 | ☑ |
-| R-19 | Réserver seulement un trajet PUBLIE | `ReservationServiceImpl.book` | | S-04 | ☐ |
-| R-20 | Points du trajet, montée avant descente | `ReservationServiceImpl.book` | | S-06 | ☐ |
-| R-21 | Places réservées ≤ places proposées | `ReservationServiceImpl.book` | | | ☐ |
-| R-22 | Une seule CONFIRMEE par passager et trajet | `ReservationServiceImpl.book` | | | ☐ |
+| R-19 | Réserver seulement un trajet PUBLIE | `ReservationServiceImpl.book` | `book_ThrowsBusinessRule_WhenTripNotPublie` | S-04 | ☑ |
+| R-20 | Points du trajet, montée avant descente | `ReservationServiceImpl.book` | `book_ThrowsInvalidRequest_WhenStopsWrongOrder` | S-06 | ☑ |
+| R-21 | Places réservées ≤ places proposées | `ReservationServiceImpl.book` | `book_ThrowsBusinessRule_WhenNotEnoughSeatsRemaining` | | ☑ |
+| R-22 | Une seule CONFIRMEE par passager et trajet | `ReservationServiceImpl.book` | `book_ThrowsBusinessRule_WhenPassengerAlreadyHasConfirmedReservation` | | ☑ |
 | R-23 | Annulation jusqu'à 24 h avant le départ | `ReservationServiceImpl.cancel` | | S-05, S-10 | ☐ |
-| R-24 | Montant = (prix descente − prix montée) × places | `ReservationServiceImpl.book` | | S-01, S-03 | ☐ |
-| R-25 | Places restantes calculées | `ReservationRepository.sumPlacesConfirmed`, `TrajetServiceImpl.findById` | `getTrajetDetail_Success` | S-01 / F-18 | ☑ |
-| R-26 | Statut PUBLIE ↔ COMPLET automatique | `ReservationServiceImpl.book/cancel` | | S-03, S-05 | ☐ |
+| R-24 | Montant = (prix descente − prix montée) × places | `ReservationServiceImpl.book` | `book_Success_Nominal` | S-01, S-03 | ☑ |
+| R-25 | Places restantes calculées | `ReservationRepository.sumPlacesConfirmed`, `TrajetServiceImpl.findById` | `getTrajetDetail_Success`, `book_Success_Nominal` | S-01 / F-18 | ☑ |
+| R-26 | Statut PUBLIE ↔ COMPLET automatique | `ReservationServiceImpl.book/cancel` | `book_Success_TransitionsToComplet_WhenAllSeatsBooked` | S-03, S-05 | ☑ |
 | R-27 | Passager : SES réservations seulement | `ReservationServiceImpl.cancel/findByPassager` | | | ☐ |
 | R-28 | Terminer seulement après le départ | `TrajetServiceImpl.finish` | | S-09 | ☐ |
 | R-29 | Annuler trajet + réservations ensemble | `TrajetServiceImpl.cancel` (`@Transactional`) | | S-11 | ☐ |
@@ -49,4 +49,4 @@ Colonne « Appliquée dans » : emplacement **prévu** (voir `design.md`). Compl
 | T-10 | INFO sur actions métier, WARN sur règles refusées | ☐ |
 | T-13 | Recherche = une seule requête JPQL | `TrajetRepository.search` | ☑ |
 | T-14 | Détail du trajet sans N+1 (vérifier les logs SQL) | ☑ |
-| T-15 | `@Transactional` sur réservation, annulation de réservation, annulation de trajet | ☐ |
+| T-15 | `@Transactional` sur réservation, annulation de réservation, annulation de trajet | `ReservationServiceImpl.book` | S-01 | ☑ |

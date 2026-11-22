@@ -45,8 +45,10 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -503,7 +505,7 @@ class TrajetServiceImplTest {
                 .isInstanceOf(InvalidRequestException.class)
                 .hasMessageContaining("La ville de départ est obligatoire");
 
-        verify(trajetRepository, never()).search(any(), any(), any(), any(), any(), any(), any());
+        verifyNoInteractions(trajetRepository);
     }
 
     @Test
@@ -522,7 +524,7 @@ class TrajetServiceImplTest {
                 .isInstanceOf(InvalidRequestException.class)
                 .hasMessageContaining("La ville d'arrivée est obligatoire");
 
-        verify(trajetRepository, never()).search(any(), any(), any(), any(), any(), any(), any());
+        verifyNoInteractions(trajetRepository);
     }
 
     @Test
@@ -539,7 +541,7 @@ class TrajetServiceImplTest {
                 .isInstanceOf(InvalidRequestException.class)
                 .hasMessageContaining("La date de départ est obligatoire");
 
-        verify(trajetRepository, never()).search(any(), any(), any(), any(), any(), any(), any());
+        verifyNoInteractions(trajetRepository);
     }
 
     @Test
@@ -558,7 +560,7 @@ class TrajetServiceImplTest {
                 .isInstanceOf(InvalidRequestException.class)
                 .hasMessageContaining("Le nombre de places demandées doit être au moins de 1");
 
-        verify(trajetRepository, never()).search(any(), any(), any(), any(), any(), any(), any());
+        verifyNoInteractions(trajetRepository);
     }
 
     @Test
@@ -577,7 +579,7 @@ class TrajetServiceImplTest {
                 .isInstanceOf(InvalidRequestException.class)
                 .hasMessageContaining("Le prix maximum doit être strictement positif");
 
-        verify(trajetRepository, never()).search(any(), any(), any(), any(), any(), any(), any());
+        verifyNoInteractions(trajetRepository);
     }
 
     @Test
@@ -592,7 +594,7 @@ class TrajetServiceImplTest {
         ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
 
         when(trajetRepository.search(
-                any(), any(), any(), any(), any(), any(), pageableCaptor.capture()
+                any(), any(), any(), any(), anyInt(), any(), pageableCaptor.capture()
         )).thenReturn(emptyPage);
 
         PageResponse<TrajetSearchResult> response = trajetService.searchTrajets(

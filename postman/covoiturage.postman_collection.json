@@ -998,6 +998,122 @@
           ]
         }
       ]
+    },
+    {
+      "name": "5. Réservations (Bookings) - COV-21 (F-21)",
+      "item": [
+        {
+          "name": "Cas Nominaux",
+          "item": [
+            {
+              "name": "F-21 : Réserver des places (201 Created - Scénario S-01)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Passenger-Id",
+                    "value": "{{passengerId}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"tripId\": {{tripId}},\n  \"villeMontee\": \"Casablanca\",\n  \"villeDescente\": \"Rabat\",\n  \"nombrePlaces\": 2\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/reservations",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "reservations"]
+                },
+                "description": "Réservation nominale avec calcul du montant et statut CONFIRMEE (R-19..R-26, S-01)."
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cas d'Erreurs & Règles Métier",
+          "item": [
+            {
+              "name": "400 - Villes invalides ou montée après descente (R-20 / S-06)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Passenger-Id",
+                    "value": "{{passengerId}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"tripId\": {{tripId}},\n  \"villeMontee\": \"Rabat\",\n  \"villeDescente\": \"Casablanca\",\n  \"nombrePlaces\": 1\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/reservations",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "reservations"]
+                }
+              }
+            },
+            {
+              "name": "409 - Trajet non PUBLIE (R-19 / S-04)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Passenger-Id",
+                    "value": "{{passengerId}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"tripId\": {{tripId}},\n  \"villeMontee\": \"Casablanca\",\n  \"villeDescente\": \"Rabat\",\n  \"nombrePlaces\": 1\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/reservations",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "reservations"]
+                }
+              }
+            },
+            {
+              "name": "409 - Places demandées supérieures aux restantes (R-21)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Passenger-Id",
+                    "value": "{{passengerId}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"tripId\": {{tripId}},\n  \"villeMontee\": \"Casablanca\",\n  \"villeDescente\": \"Rabat\",\n  \"nombrePlaces\": 99\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/reservations",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "reservations"]
+                }
+              }
+            }
+          ]
+        }
+      ]
     }
   ]
 }
