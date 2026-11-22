@@ -30,11 +30,11 @@ Colonne « Appliquée dans » : emplacement **prévu** (voir `design.md`). Compl
 | R-24 | Montant = (prix descente − prix montée) × places | `ReservationServiceImpl.book` | `book_Success_Nominal` | S-01, S-03 | ☑ |
 | R-25 | Places restantes calculées | `ReservationRepository.sumPlacesConfirmed`, `TrajetServiceImpl.findById` | `getTrajetDetail_Success`, `book_Success_Nominal` | S-01 / F-18 | ☑ |
 | R-26 | Statut PUBLIE ↔ COMPLET automatique | `ReservationServiceImpl.book/cancel` | `book_Success_TransitionsToComplet_WhenAllSeatsBooked`, `cancel_Success_TransitionsCompletToPublie` | S-03, S-05 | ☑ |
-| R-27 | Passager : SES réservations seulement | `ReservationServiceImpl.cancel/findByPassager` | `cancel_ThrowsForbidden_WhenNotOwner` | | ☑ |
+| R-27 | Passager : SES réservations seulement | `ReservationServiceImpl.cancel/findByPassager` | `cancel_ThrowsForbidden_WhenNotOwner`, `findByPassager_ThrowsForbidden_WhenActingIdDoesNotMatch` | | ☑ |
 | R-28 | Terminer seulement après le départ | `TrajetServiceImpl.finish` | | S-09 | ☐ |
 | R-29 | Annuler trajet + réservations ensemble | `TrajetServiceImpl.cancel` (`@Transactional`) | | S-11 | ☐ |
 | R-30 | TERMINE / ANNULE = statuts finaux | `TrajetServiceImpl.finish/cancel` | | | ☐ |
-| R-31 | Conducteur : réservations de SES trajets | `TrajetServiceImpl.findReservations` | | | ☐ |
+| R-31 | Conducteur : réservations de SES trajets | `ReservationServiceImpl.findByTrajet` | `findByTrajet_ThrowsForbidden_WhenDriverNotOwner` | | ☑ |
 | R-32 | Montants `BigDecimal` à 2 décimales | calcul du montant (un seul endroit) | | S-01, S-03 | ☐ |
 | R-33 | Places restantes et prix de segment non stockés | modèle (pas de colonne) + `search`/`findById` | `getTrajetDetail_Success` | F-18 | ☑ |
 | R-34 | Messages d'erreur clairs | `GlobalExceptionHandler` + exceptions | | | ☐ |

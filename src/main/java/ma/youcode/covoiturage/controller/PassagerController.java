@@ -6,7 +6,9 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import ma.youcode.covoiturage.dto.request.PassagerRequest;
 import ma.youcode.covoiturage.dto.response.PassagerResponse;
+import ma.youcode.covoiturage.dto.response.ReservationResponse;
 import ma.youcode.covoiturage.service.PassagerService;
+import ma.youcode.covoiturage.service.ReservationService;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -28,6 +30,7 @@ import java.util.List;
 public class PassagerController {
 
     private final PassagerService passagerService;
+    private final ReservationService reservationService;
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
@@ -61,5 +64,13 @@ public class PassagerController {
     @Operation(summary = "F-10 Rechercher des passagers par email")
     public List<PassagerResponse> search(@RequestParam(required = false) String email) {
         return passagerService.searchByEmail(email);
+    }
+
+    @GetMapping("/{id}/reservations")
+    @Operation(summary = "F-11 Historique des réservations d'un passager")
+    public List<ReservationResponse> findReservations(
+            @RequestHeader("X-Passenger-Id") Long actingId,
+            @PathVariable Long id) {
+        return reservationService.findByPassager(actingId, id);
     }
 }

@@ -26,6 +26,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Clock;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -173,5 +174,48 @@ public class ReservationServiceImpl implements ReservationService {
             trajet.reouvrir();
             log.info("Trajet #{} repassé automatiquement au statut PUBLIE suite à libération de places", trajet.getId());
         }
+    }
+
+    @Override
+    public List<ReservationResponse> findByPassager(Long actingId, Long passagerId) {
+        log.info("Consultation de l'historique des réservations du passager {} par l'acteur {}", passagerId, actingId);
+
+        // 1. R-27 : Passager consulte SES réservations seulement (403)
+        if (!actingId.equals(passagerId)) {
+            log.warn("Tentative d'accès non autorisée : passager {} tente de consulter les réservations du passager {}", actingId, passagerId);
+            throw new ForbiddenOperationException("Vous ne pouvez consulter que vos propres réservations");
+        }
+
+        // 2. Vérification existence du passager (404)
+        if (!passagerRepository.existsById(passagerId)) {
+            throw new ResourceNotFoundException("Passager non trouvé avec l'id : " + passagerId);
+        }
+
+        // 3. Récupération ordonnée par dateReservation DESC (les plus récentes d'abord)
+        List<Reservation> reservations = reservationRepository.findByPassagerIdOrderByDateReservationDesc(passagerId);
+
+        return reservationMapper.toResponseList(reservations);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ReservationResponse> findByTrajet(Long driverId, Long tripId) {
+        log.info("Consultation des réservations du trajet #{} par le conducteur {}", tripId, driverId);
+
+        // 1. Recherche du trajet (404 si introuvable)
+        Trajet trajet = trajetRepository.findById(tripId)
+                .orElseThrow(() -> new ResourceNotFoundException("Trajet non trouvé avec l'id : " + tripId));
+
+        // 2. Règle R-31 : Le conducteur ne consulte que les réservations de SES trajets (403)
+        if (!trajet.getConducteur().getId().equals(driverId)) {
+            log.warn("Tentative d'accès non autorisée : conducteur {} sur trajet #{} appartenant au conducteur {}",
+                    driverId, tripId, trajet.getConducteur().getId());
+            throw new ForbiddenOperationException("Vous ne pouvez consulter que les réservations de vos propres trajets");
+        }
+
+        // 3. Récupération ordonnée avec JOIN FETCH anti-N+1
+        List<Reservation> reservations = reservationRepository.findByTrajetIdOrderByDateReservationDesc(tripId);
+
+        return reservationMapper.toResponseList(reservations);
     }
 }

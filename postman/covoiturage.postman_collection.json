@@ -347,6 +347,25 @@
                 },
                 "description": "Recherche de passagers par email."
               }
+            },
+            {
+              "name": "F-11 : Historique des réservations d'un passager (200 OK)",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "X-Passenger-Id",
+                    "value": "{{passengerId}}",
+                    "description": "Simule l'authentification du passager connecté (R-27)"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/passengers/{{passengerId}}/reservations",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "passengers", "{{passengerId}}", "reservations"]
+                },
+                "description": "Consulte l'historique de toutes les réservations du passager ordonnées de la plus récente à la plus ancienne."
+              }
             }
           ]
         },
@@ -426,6 +445,25 @@
                   "path": ["api", "passengers"]
                 },
                 "description": "Email passager déjà existant levant BusinessRuleException."
+              }
+            },
+            {
+              "name": "403 - Historique des réservations d'un autre passager (R-27)",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "X-Passenger-Id",
+                    "value": "99999",
+                    "description": "Identifiant d'un autre passager"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/passengers/{{passengerId}}/reservations",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "passengers", "{{passengerId}}", "reservations"]
+                },
+                "description": "Rejet 403 Forbidden si un passager tente de consulter les réservations d'un autre passager (R-27)."
               }
             }
           ]
@@ -742,12 +780,50 @@
                 },
                 "description": "Recherche de trajets avec pagination, calcul du prix de segment et places restantes (R-15 à R-18, S-02)."
               }
+            },
+            {
+              "name": "F-19 : Consulter les réservations de ses trajets (200 OK)",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "X-Driver-Id",
+                    "value": "{{driverId}}",
+                    "description": "Simule l'authentification du conducteur (R-31)"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/trips/{{tripId}}/reservations",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "trips", "{{tripId}}", "reservations"]
+                },
+                "description": "Consulte toutes les réservations associées à un trajet du conducteur connecté (R-31)."
+              }
             }
           ]
         },
         {
           "name": "Cas d'Erreurs & Règles Métier",
           "item": [
+            {
+              "name": "403 - Réservations du trajet d'un autre conducteur (R-31)",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "X-Driver-Id",
+                    "value": "99999",
+                    "description": "Identifiant d'un autre conducteur"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/trips/{{tripId}}/reservations",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "trips", "{{tripId}}", "reservations"]
+                },
+                "description": "Rejet 403 Forbidden si un conducteur tente de consulter les réservations du trajet d'un autre (R-31)."
+              }
+            },
             {
               "name": "404 - Conducteur inexistant (R-07)",
               "request": {

@@ -2,6 +2,7 @@ package ma.youcode.covoiturage.service.impl;
 
 import ma.youcode.covoiturage.dto.request.ReservationRequest;
 import ma.youcode.covoiturage.dto.response.ReservationResponse;
+import ma.youcode.covoiturage.entity.Conducteur;
 import ma.youcode.covoiturage.entity.Passager;
 import ma.youcode.covoiturage.entity.PointArret;
 import ma.youcode.covoiturage.entity.Reservation;
@@ -57,6 +58,7 @@ class ReservationServiceImplTest {
     private ReservationServiceImpl reservationService;
 
     private Clock fixedClock;
+    private Conducteur conducteur;
     private Passager passager;
     private Trajet trajet;
     private PointArret stopCasa;
@@ -76,6 +78,14 @@ class ReservationServiceImplTest {
                 reservationMapper,
                 fixedClock
         );
+
+        conducteur = Conducteur.builder()
+                .id(2L)
+                .nom("Benani")
+                .prenom("Karim")
+                .email("karim@test.com")
+                .telephone("0622334455")
+                .build();
 
         passager = Passager.builder()
                 .id(1L)
@@ -116,6 +126,7 @@ class ReservationServiceImplTest {
                 .dateDepart(referenceNow.plusDays(1).plusHours(2))
                 .placesProposees(3)
                 .statut(StatutTrajet.PUBLIE)
+                .conducteur(conducteur)
                 .pointsArret(new ArrayList<>(List.of(stopCasa, stopRabat, stopTanger)))
                 .build();
     }
@@ -486,5 +497,151 @@ class ReservationServiceImplTest {
         assertThatThrownBy(() -> reservationService.cancel(1L, 50L))
                 .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("Impossible d'annuler une réservation moins de 24 heures avant le départ");
+    }
+
+    // ==========================================
+    // F-11 : Historique des réservations d'un passager (R-27)
+    // ==========================================
+
+    @Test
+    @DisplayName("F-11 : consultation nominale de l'historique des réservations (200 OK - CONFIRMEE et ANNULEE)")
+    void findByPassager_Success_Nominal() {
+        Reservation res1 = Reservation.builder()
+                .id(100L)
+                .passager(passager)
+                .trajet(trajet)
+                .pointArretMontee(stopCasa)
+                .pointArretDescente(stopRabat)
+                .nombrePlaces(2)
+                .montantTotal(new BigDecimal("70.00"))
+                .statut(StatutReservation.CONFIRMEE)
+                .dateReservation(referenceNow.minusDays(1))
+                .build();
+
+        Reservation res2 = Reservation.builder()
+                .id(101L)
+                .passager(passager)
+                .trajet(trajet)
+                .pointArretMontee(stopCasa)
+                .pointArretDescente(stopTanger)
+                .nombrePlaces(1)
+                .montantTotal(new BigDecimal("120.00"))
+                .statut(StatutReservation.ANNULEE)
+                .dateReservation(referenceNow.minusDays(3))
+                .build();
+
+        when(passagerRepository.existsById(1L)).thenReturn(true);
+        when(reservationRepository.findByPassagerIdOrderByDateReservationDesc(1L))
+                .thenReturn(List.of(res1, res2));
+
+        ReservationResponse resp1 = new ReservationResponse(100L, 1L, 10L, "Casablanca", "Rabat", 2, new BigDecimal("70.00"), StatutReservation.CONFIRMEE, referenceNow.minusDays(1));
+        ReservationResponse resp2 = new ReservationResponse(101L, 1L, 10L, "Casablanca", "Tanger", 1, new BigDecimal("120.00"), StatutReservation.ANNULEE, referenceNow.minusDays(3));
+        when(reservationMapper.toResponseList(List.of(res1, res2))).thenReturn(List.of(resp1, resp2));
+
+        List<ReservationResponse> results = reservationService.findByPassager(1L, 1L);
+
+        assertThat(results).hasSize(2);
+        assertThat(results.get(0).statut()).isEqualTo(StatutReservation.CONFIRMEE);
+        assertThat(results.get(1).statut()).isEqualTo(StatutReservation.ANNULEE);
+
+        verify(passagerRepository).existsById(1L);
+        verify(reservationRepository).findByPassagerIdOrderByDateReservationDesc(1L);
+    }
+
+    @Test
+    @DisplayName("F-11 : rejet si un passager tente de consulter les réservations d'un autre (403 / R-27)")
+    void findByPassager_ThrowsForbidden_WhenActingIdDoesNotMatch() {
+        // Passager 2L tente de consulter l'historique du passager 1L
+        assertThatThrownBy(() -> reservationService.findByPassager(2L, 1L))
+                .isInstanceOf(ForbiddenOperationException.class)
+                .hasMessageContaining("Vous ne pouvez consulter que vos propres réservations");
+
+        verify(reservationRepository, never()).findByPassagerIdOrderByDateReservationDesc(any());
+    }
+
+    @Test
+    @DisplayName("F-11 : rejet si le passager est inconnu (404)")
+    void findByPassager_ThrowsNotFound_WhenPassagerDoesNotExist() {
+        when(passagerRepository.existsById(99L)).thenReturn(false);
+
+        assertThatThrownBy(() -> reservationService.findByPassager(99L, 99L))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessageContaining("Passager non trouvé avec l'id : 99");
+
+        verify(reservationRepository, never()).findByPassagerIdOrderByDateReservationDesc(any());
+    }
+
+    // ==========================================
+    // F-19 : Consultation des réservations d'un trajet (Conducteur)
+    // ==========================================
+
+    @Test
+    @DisplayName("F-19 : consultation des réservations de son trajet avec succès (200 OK)")
+    void findByTrajet_Success_Nominal() {
+        Reservation res1 = Reservation.builder()
+                .id(100L)
+                .passager(passager)
+                .trajet(trajet)
+                .pointArretMontee(stopCasa)
+                .pointArretDescente(stopRabat)
+                .nombrePlaces(2)
+                .montantTotal(new BigDecimal("70.00"))
+                .statut(StatutReservation.CONFIRMEE)
+                .dateReservation(referenceNow.minusDays(1))
+                .build();
+
+        Reservation res2 = Reservation.builder()
+                .id(101L)
+                .passager(passager)
+                .trajet(trajet)
+                .pointArretMontee(stopCasa)
+                .pointArretDescente(stopTanger)
+                .nombrePlaces(1)
+                .montantTotal(new BigDecimal("120.00"))
+                .statut(StatutReservation.ANNULEE)
+                .dateReservation(referenceNow.minusDays(3))
+                .build();
+
+        when(trajetRepository.findById(10L)).thenReturn(Optional.of(trajet));
+        when(reservationRepository.findByTrajetIdOrderByDateReservationDesc(10L))
+                .thenReturn(List.of(res1, res2));
+
+        ReservationResponse resp1 = new ReservationResponse(100L, 1L, 10L, "Casablanca", "Rabat", 2, new BigDecimal("70.00"), StatutReservation.CONFIRMEE, referenceNow.minusDays(1));
+        ReservationResponse resp2 = new ReservationResponse(101L, 1L, 10L, "Casablanca", "Tanger", 1, new BigDecimal("120.00"), StatutReservation.ANNULEE, referenceNow.minusDays(3));
+        when(reservationMapper.toResponseList(List.of(res1, res2))).thenReturn(List.of(resp1, resp2));
+
+        List<ReservationResponse> results = reservationService.findByTrajet(2L, 10L);
+
+        assertThat(results).hasSize(2);
+        assertThat(results.get(0).statut()).isEqualTo(StatutReservation.CONFIRMEE);
+        assertThat(results.get(1).statut()).isEqualTo(StatutReservation.ANNULEE);
+
+        verify(trajetRepository).findById(10L);
+        verify(reservationRepository).findByTrajetIdOrderByDateReservationDesc(10L);
+    }
+
+    @Test
+    @DisplayName("F-19 : rejet si un conducteur consulte les réservations d'un trajet d'un autre conducteur (403 / R-31)")
+    void findByTrajet_ThrowsForbidden_WhenDriverNotOwner() {
+        // Conducteur 99L tente de consulter les réservations du trajet appartenant au conducteur 2L
+        when(trajetRepository.findById(10L)).thenReturn(Optional.of(trajet));
+
+        assertThatThrownBy(() -> reservationService.findByTrajet(99L, 10L))
+                .isInstanceOf(ForbiddenOperationException.class)
+                .hasMessageContaining("Vous ne pouvez consulter que les réservations de vos propres trajets");
+
+        verify(reservationRepository, never()).findByTrajetIdOrderByDateReservationDesc(any());
+    }
+
+    @Test
+    @DisplayName("F-19 : rejet si le trajet est introuvable (404)")
+    void findByTrajet_ThrowsNotFound_WhenTripDoesNotExist() {
+        when(trajetRepository.findById(999L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> reservationService.findByTrajet(2L, 999L))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessageContaining("Trajet non trouvé avec l'id : 999");
+
+        verify(reservationRepository, never()).findByTrajetIdOrderByDateReservationDesc(any());
     }
 }
