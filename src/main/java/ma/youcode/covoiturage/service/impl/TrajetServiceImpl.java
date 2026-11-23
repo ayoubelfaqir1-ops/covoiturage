@@ -13,6 +13,7 @@ import ma.youcode.covoiturage.entity.PointArret;
 import ma.youcode.covoiturage.entity.Trajet;
 import ma.youcode.covoiturage.entity.Vehicule;
 import ma.youcode.covoiturage.entity.enums.StatutTrajet;
+import ma.youcode.covoiturage.exception.BusinessRuleException;
 import ma.youcode.covoiturage.exception.ForbiddenOperationException;
 import ma.youcode.covoiturage.exception.InvalidRequestException;
 import ma.youcode.covoiturage.exception.ResourceNotFoundException;
@@ -217,5 +218,47 @@ public class TrajetServiceImpl implements TrajetService {
 
         // 6. Encapsulation dans le contrat PageResponse
         return PageResponse.from(page);
+    }
+
+    @Override
+    @Transactional
+    public TrajetDetailResponse finish(Long driverId, Long tripId) {
+        log.info("Tentative de clôture du trajet #{} par le conducteur {}", tripId, driverId);
+
+        // 1. Recherche du trajet avec verrou pessimiste (404 si introuvable)
+        Trajet trajet = trajetRepository.findByIdForUpdate(tripId)
+                .orElseThrow(() -> new ResourceNotFoundException("Trajet non trouvé avec l'id : " + tripId));
+
+        // 2. R-36 / R-31 : Conducteur termine SES trajets seulement (403)
+        if (!trajet.getConducteur().getId().equals(driverId)) {
+            log.warn("Tentative de terminer le trajet #{} par un conducteur non propriétaire (reçu: {}, propriétaire: {})",
+                    tripId, driverId, trajet.getConducteur().getId());
+            throw new ForbiddenOperationException("Vous ne pouvez terminer que vos propres trajets");
+        }
+
+        // 3. R-30 : TERMINE et ANNULE sont des statuts finaux (409)
+        if (trajet.getStatut() == StatutTrajet.TERMINE || trajet.getStatut() == StatutTrajet.ANNULE) {
+            log.warn("Tentative de terminer le trajet #{} ayant déjà le statut final {}", tripId, trajet.getStatut());
+            throw new BusinessRuleException("Impossible de terminer un trajet déjà " + trajet.getStatut());
+        }
+
+        // 4. R-28 : Terminer un trajet seulement après son heure de départ (409 / S-09)
+        LocalDateTime now = LocalDateTime.now(clock);
+        if (!now.isAfter(trajet.getDateDepart())) {
+            log.warn("Tentative de terminer le trajet #{} avant son heure de départ (now: {}, départ: {})",
+                    tripId, now, trajet.getDateDepart());
+            throw new BusinessRuleException("Un trajet ne peut être terminé qu'après son heure de départ");
+        }
+
+        // 5. Clôture du trajet et persistance
+        trajet.terminer();
+        Trajet savedTrajet = trajetRepository.save(trajet);
+        log.info("Trajet #{} marqué comme TERMINE avec succès par le conducteur {}", tripId, driverId);
+
+        // 6. Construction de la réponse détaillée avec calcul des places restantes
+        int placesOccupees = reservationRepository.sumPlacesConfirmedByTrajetId(savedTrajet.getId());
+        int placesRestantes = Math.max(0, savedTrajet.getPlacesProposees() - placesOccupees);
+
+        return trajetMapper.toDetailResponse(savedTrajet, placesRestantes);
     }
 }

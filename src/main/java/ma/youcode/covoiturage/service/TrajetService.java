@@ -23,4 +23,6 @@ public interface TrajetService {
             BigDecimal maxPrice,
             Pageable pageable
     );
+
+    TrajetDetailResponse finish(Long driverId, Long tripId);
 }

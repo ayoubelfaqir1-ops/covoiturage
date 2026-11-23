@@ -799,12 +799,69 @@
                 },
                 "description": "Consulte toutes les réservations associées à un trajet du conducteur connecté (R-31)."
               }
+            },
+            {
+              "name": "F-23 : Terminer un trajet (200 OK)",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "X-Driver-Id",
+                    "value": "{{driverId}}",
+                    "description": "Simule l'authentification du conducteur (R-31 / R-36)"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/trips/{{tripId}}/finish",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "trips", "{{tripId}}", "finish"]
+                },
+                "description": "Clôture un trajet pour le passer au statut final TERMINE après son heure de départ (R-28, R-30)."
+              }
             }
           ]
         },
         {
           "name": "Cas d'Erreurs & Règles Métier",
           "item": [
+            {
+              "name": "409 - Terminer un trajet avant le départ (R-28 / S-09)",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "X-Driver-Id",
+                    "value": "{{driverId}}",
+                    "description": "Conducteur propriétaire"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/trips/{{tripId}}/finish",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "trips", "{{tripId}}", "finish"]
+                },
+                "description": "Tentative de clôture d'un trajet dont l'heure de départ n'est pas encore passée (409 Conflict, Scénario S-09)."
+              }
+            },
+            {
+              "name": "403 - Terminer le trajet d'un autre conducteur (R-36)",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "X-Driver-Id",
+                    "value": "99999",
+                    "description": "Identifiant d'un autre conducteur"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/trips/{{tripId}}/finish",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "trips", "{{tripId}}", "finish"]
+                },
+                "description": "Rejet 403 Forbidden si un conducteur tente de clôturer le trajet d'un autre conducteur."
+              }
+            },
             {
               "name": "403 - Réservations du trajet d'un autre conducteur (R-31)",
               "request": {

@@ -17,6 +17,7 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -72,5 +73,13 @@ public class TrajetController {
             @RequestParam(required = false) BigDecimal maxPrice,
             @PageableDefault(page = 0, size = 10) Pageable pageable) {
         return trajetService.searchTrajets(departureCity, arrivalCity, date, seats, maxPrice, pageable);
+    }
+
+    @PatchMapping("/{id}/finish")
+    @Operation(summary = "F-23 Terminer un trajet")
+    public TrajetDetailResponse finish(
+            @RequestHeader("X-Driver-Id") Long driverId,
+            @PathVariable Long id) {
+        return trajetService.finish(driverId, id);
     }
 }

@@ -13,6 +13,7 @@ import ma.youcode.covoiturage.entity.Conducteur;
 import ma.youcode.covoiturage.entity.Trajet;
 import ma.youcode.covoiturage.entity.Vehicule;
 import ma.youcode.covoiturage.entity.enums.StatutTrajet;
+import ma.youcode.covoiturage.exception.BusinessRuleException;
 import ma.youcode.covoiturage.exception.ForbiddenOperationException;
 import ma.youcode.covoiturage.exception.InvalidRequestException;
 import ma.youcode.covoiturage.exception.ResourceNotFoundException;
@@ -608,5 +609,151 @@ class TrajetServiceImplTest {
 
         assertThat(response).isNotNull();
         assertThat(pageableCaptor.getValue().getPageSize()).isEqualTo(50); // Plafonné à 50
+    }
+
+    // ==========================================
+    // F-23 : Terminer un trajet (Cycle de vie)
+    // ==========================================
+
+    @Test
+    @DisplayName("F-23 : clôture réussie d'un trajet après son heure de départ (200 OK)")
+    void finish_Success_Nominal() {
+        // Trajet parti il y a 2 heures
+        Trajet trip = Trajet.builder()
+                .id(10L)
+                .villeDepart("Casablanca")
+                .villeArrivee("Rabat")
+                .dateDepart(referenceNow.minusHours(2))
+                .placesProposees(3)
+                .statut(StatutTrajet.PUBLIE)
+                .conducteur(conducteur)
+                .vehicule(vehicule)
+                .build();
+
+        when(trajetRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(trip));
+        when(trajetRepository.save(any(Trajet.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(reservationRepository.sumPlacesConfirmedByTrajetId(10L)).thenReturn(1);
+
+        TrajetDetailResponse expectedDetail = new TrajetDetailResponse(
+                10L, "Casablanca", "Rabat", referenceNow.minusHours(2),
+                3, 2, StatutTrajet.TERMINE,
+                null, null, List.of()
+        );
+        when(trajetMapper.toDetailResponse(trip, 2)).thenReturn(expectedDetail);
+
+        TrajetDetailResponse result = trajetService.finish(1L, 10L);
+
+        assertThat(result).isNotNull();
+        assertThat(result.statut()).isEqualTo(StatutTrajet.TERMINE);
+        assertThat(trip.getStatut()).isEqualTo(StatutTrajet.TERMINE);
+
+        verify(trajetRepository).findByIdForUpdate(10L);
+        verify(trajetRepository).save(trip);
+        verify(reservationRepository).sumPlacesConfirmedByTrajetId(10L);
+    }
+
+    @Test
+    @DisplayName("F-23 : rejet si un autre conducteur tente de terminer le trajet (403 / R-36)")
+    void finish_ThrowsForbidden_WhenDriverNotOwner() {
+        Trajet trip = Trajet.builder()
+                .id(10L)
+                .villeDepart("Casablanca")
+                .villeArrivee("Rabat")
+                .dateDepart(referenceNow.minusHours(2))
+                .placesProposees(3)
+                .statut(StatutTrajet.PUBLIE)
+                .conducteur(conducteur) // id = 1L
+                .vehicule(vehicule)
+                .build();
+
+        when(trajetRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(trip));
+
+        assertThatThrownBy(() -> trajetService.finish(99L, 10L))
+                .isInstanceOf(ForbiddenOperationException.class)
+                .hasMessageContaining("Vous ne pouvez terminer que vos propres trajets");
+
+        verify(trajetRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("F-23 : rejet si le trajet est introuvable (404)")
+    void finish_ThrowsNotFound_WhenTripNotFound() {
+        when(trajetRepository.findByIdForUpdate(999L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> trajetService.finish(1L, 999L))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessageContaining("Trajet non trouvé avec l'id : 999");
+
+        verify(trajetRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("F-23 : rejet si tentative de clôture avant l'heure de départ (409 / R-28 / S-09)")
+    void finish_ThrowsBusinessRule_WhenBeforeDepartureTime() {
+        // Trajet qui part dans 2 heures (dans le futur !)
+        Trajet trip = Trajet.builder()
+                .id(10L)
+                .villeDepart("Casablanca")
+                .villeArrivee("Rabat")
+                .dateDepart(referenceNow.plusHours(2))
+                .placesProposees(3)
+                .statut(StatutTrajet.PUBLIE)
+                .conducteur(conducteur)
+                .vehicule(vehicule)
+                .build();
+
+        when(trajetRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(trip));
+
+        assertThatThrownBy(() -> trajetService.finish(1L, 10L))
+                .isInstanceOf(BusinessRuleException.class)
+                .hasMessageContaining("Un trajet ne peut être terminé qu'après son heure de départ");
+
+        verify(trajetRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("F-23 : rejet si le trajet est déjà TERMINE (409 / R-30)")
+    void finish_ThrowsBusinessRule_WhenAlreadyTermine() {
+        Trajet trip = Trajet.builder()
+                .id(10L)
+                .villeDepart("Casablanca")
+                .villeArrivee("Rabat")
+                .dateDepart(referenceNow.minusHours(2))
+                .placesProposees(3)
+                .statut(StatutTrajet.TERMINE)
+                .conducteur(conducteur)
+                .vehicule(vehicule)
+                .build();
+
+        when(trajetRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(trip));
+
+        assertThatThrownBy(() -> trajetService.finish(1L, 10L))
+                .isInstanceOf(BusinessRuleException.class)
+                .hasMessageContaining("Impossible de terminer un trajet déjà TERMINE");
+
+        verify(trajetRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("F-23 : rejet si le trajet est déjà ANNULE (409 / R-30)")
+    void finish_ThrowsBusinessRule_WhenAlreadyAnnule() {
+        Trajet trip = Trajet.builder()
+                .id(10L)
+                .villeDepart("Casablanca")
+                .villeArrivee("Rabat")
+                .dateDepart(referenceNow.minusHours(2))
+                .placesProposees(3)
+                .statut(StatutTrajet.ANNULE)
+                .conducteur(conducteur)
+                .vehicule(vehicule)
+                .build();
+
+        when(trajetRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(trip));
+
+        assertThatThrownBy(() -> trajetService.finish(1L, 10L))
+                .isInstanceOf(BusinessRuleException.class)
+                .hasMessageContaining("Impossible de terminer un trajet déjà ANNULE");
+
+        verify(trajetRepository, never()).save(any());
     }
 }
