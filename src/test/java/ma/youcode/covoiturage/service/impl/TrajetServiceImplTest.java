@@ -10,8 +10,10 @@ import ma.youcode.covoiturage.dto.response.TrajetResponse;
 import ma.youcode.covoiturage.dto.response.TrajetSearchResult;
 import ma.youcode.covoiturage.dto.response.VehiculeResponse;
 import ma.youcode.covoiturage.entity.Conducteur;
+import ma.youcode.covoiturage.entity.Reservation;
 import ma.youcode.covoiturage.entity.Trajet;
 import ma.youcode.covoiturage.entity.Vehicule;
+import ma.youcode.covoiturage.entity.enums.StatutReservation;
 import ma.youcode.covoiturage.entity.enums.StatutTrajet;
 import ma.youcode.covoiturage.exception.BusinessRuleException;
 import ma.youcode.covoiturage.exception.ForbiddenOperationException;
@@ -755,5 +757,162 @@ class TrajetServiceImplTest {
                 .hasMessageContaining("Impossible de terminer un trajet déjà ANNULE");
 
         verify(trajetRepository, never()).save(any());
+    }
+
+    // ==========================================
+    // F-24 : Annuler un trajet (Cycle de vie & R-29)
+    // ==========================================
+
+    @Test
+    @DisplayName("F-24 : annulation réussie d'un trajet et de toutes ses réservations confirmées (204 / S-11)")
+    void cancel_Success_Nominal() {
+        Trajet trip = Trajet.builder()
+                .id(10L)
+                .villeDepart("Casablanca")
+                .villeArrivee("Rabat")
+                .dateDepart(referenceNow.plusDays(1))
+                .placesProposees(3)
+                .statut(StatutTrajet.PUBLIE)
+                .conducteur(conducteur)
+                .vehicule(vehicule)
+                .build();
+
+        Reservation res1 = Reservation.builder()
+                .id(100L)
+                .trajet(trip)
+                .nombrePlaces(1)
+                .statut(StatutReservation.CONFIRMEE)
+                .build();
+
+        Reservation res2 = Reservation.builder()
+                .id(101L)
+                .trajet(trip)
+                .nombrePlaces(2)
+                .statut(StatutReservation.CONFIRMEE)
+                .build();
+
+        when(trajetRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(trip));
+        when(reservationRepository.findByTrajetIdAndStatut(10L, StatutReservation.CONFIRMEE))
+                .thenReturn(List.of(res1, res2));
+
+        trajetService.cancel(1L, 10L);
+
+        assertThat(trip.getStatut()).isEqualTo(StatutTrajet.ANNULE);
+        assertThat(res1.getStatut()).isEqualTo(StatutReservation.ANNULEE);
+        assertThat(res2.getStatut()).isEqualTo(StatutReservation.ANNULEE);
+
+        verify(trajetRepository).findByIdForUpdate(10L);
+        verify(trajetRepository).save(trip);
+        verify(reservationRepository).saveAll(List.of(res1, res2));
+    }
+
+    @Test
+    @DisplayName("F-24 : rejet si un autre conducteur tente d'annuler le trajet (403 / R-36)")
+    void cancel_ThrowsForbidden_WhenDriverNotOwner() {
+        Trajet trip = Trajet.builder()
+                .id(10L)
+                .villeDepart("Casablanca")
+                .villeArrivee("Rabat")
+                .dateDepart(referenceNow.plusDays(1))
+                .placesProposees(3)
+                .statut(StatutTrajet.PUBLIE)
+                .conducteur(conducteur) // id = 1L
+                .vehicule(vehicule)
+                .build();
+
+        when(trajetRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(trip));
+
+        assertThatThrownBy(() -> trajetService.cancel(99L, 10L))
+                .isInstanceOf(ForbiddenOperationException.class)
+                .hasMessageContaining("Vous ne pouvez annuler que vos propres trajets");
+
+        verify(trajetRepository, never()).save(any());
+        verify(reservationRepository, never()).saveAll(any());
+    }
+
+    @Test
+    @DisplayName("F-24 : rejet si le trajet est introuvable (404)")
+    void cancel_ThrowsNotFound_WhenTripNotFound() {
+        when(trajetRepository.findByIdForUpdate(999L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> trajetService.cancel(1L, 999L))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessageContaining("Trajet non trouvé avec l'id : 999");
+
+        verify(trajetRepository, never()).save(any());
+        verify(reservationRepository, never()).saveAll(any());
+    }
+
+    @Test
+    @DisplayName("F-24 : rejet si le trajet est déjà TERMINE (409 / R-30)")
+    void cancel_ThrowsBusinessRule_WhenAlreadyTermine() {
+        Trajet trip = Trajet.builder()
+                .id(10L)
+                .villeDepart("Casablanca")
+                .villeArrivee("Rabat")
+                .dateDepart(referenceNow.minusHours(2))
+                .placesProposees(3)
+                .statut(StatutTrajet.TERMINE)
+                .conducteur(conducteur)
+                .vehicule(vehicule)
+                .build();
+
+        when(trajetRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(trip));
+
+        assertThatThrownBy(() -> trajetService.cancel(1L, 10L))
+                .isInstanceOf(BusinessRuleException.class)
+                .hasMessageContaining("Impossible d'annuler un trajet déjà TERMINE");
+
+        verify(trajetRepository, never()).save(any());
+        verify(reservationRepository, never()).saveAll(any());
+    }
+
+    @Test
+    @DisplayName("F-24 : rejet si le trajet est déjà ANNULE (409 / R-30)")
+    void cancel_ThrowsBusinessRule_WhenAlreadyAnnule() {
+        Trajet trip = Trajet.builder()
+                .id(10L)
+                .villeDepart("Casablanca")
+                .villeArrivee("Rabat")
+                .dateDepart(referenceNow.plusDays(1))
+                .placesProposees(3)
+                .statut(StatutTrajet.ANNULE)
+                .conducteur(conducteur)
+                .vehicule(vehicule)
+                .build();
+
+        when(trajetRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(trip));
+
+        assertThatThrownBy(() -> trajetService.cancel(1L, 10L))
+                .isInstanceOf(BusinessRuleException.class)
+                .hasMessageContaining("Impossible d'annuler un trajet déjà ANNULE");
+
+        verify(trajetRepository, never()).save(any());
+        verify(reservationRepository, never()).saveAll(any());
+    }
+
+    @Test
+    @DisplayName("F-24 : échec en bloc si le chargement des réservations échoue (Rollback / T-15)")
+    void cancel_FailsCompletely_WhenReservationStepThrows() {
+        Trajet trip = Trajet.builder()
+                .id(10L)
+                .villeDepart("Casablanca")
+                .villeArrivee("Rabat")
+                .dateDepart(referenceNow.plusDays(1))
+                .placesProposees(3)
+                .statut(StatutTrajet.PUBLIE)
+                .conducteur(conducteur)
+                .vehicule(vehicule)
+                .build();
+
+        when(trajetRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(trip));
+        when(reservationRepository.findByTrajetIdAndStatut(10L, StatutReservation.CONFIRMEE))
+                .thenThrow(new RuntimeException("Erreur de base de données inattendue"));
+
+        assertThatThrownBy(() -> trajetService.cancel(1L, 10L))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("Erreur de base de données inattendue");
+
+        verify(reservationRepository, never()).saveAll(any());
     }
 }

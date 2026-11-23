@@ -32,8 +32,8 @@ Colonne « Appliquée dans » : emplacement **prévu** (voir `design.md`). Compl
 | R-26 | Statut PUBLIE ↔ COMPLET automatique | `ReservationServiceImpl.book/cancel` | `book_Success_TransitionsToComplet_WhenAllSeatsBooked`, `cancel_Success_TransitionsCompletToPublie` | S-03, S-05 | ☑ |
 | R-27 | Passager : SES réservations seulement | `ReservationServiceImpl.cancel/findByPassager` | `cancel_ThrowsForbidden_WhenNotOwner`, `findByPassager_ThrowsForbidden_WhenActingIdDoesNotMatch` | | ☑ |
 | R-28 | Terminer seulement après le départ | `TrajetServiceImpl.finish` | `finish_ThrowsBusinessRule_WhenBeforeDepartureTime` | S-09 | ☑ |
-| R-29 | Annuler trajet + réservations ensemble | `TrajetServiceImpl.cancel` (`@Transactional`) | | S-11 | ☐ |
-| R-30 | TERMINE / ANNULE = statuts finaux | `TrajetServiceImpl.finish/cancel` | `finish_ThrowsBusinessRule_WhenAlreadyTermine`, `finish_ThrowsBusinessRule_WhenAlreadyAnnule` | | ☑ |
+| R-29 | Annuler trajet + réservations ensemble | `TrajetServiceImpl.cancel` (`@Transactional`) | `cancel_Success_Nominal`, `cancel_FailsCompletely_WhenReservationStepThrows` | S-11 | ☑ |
+| R-30 | TERMINE / ANNULE = statuts finaux | `TrajetServiceImpl.finish/cancel` | `finish_ThrowsBusinessRule_WhenAlreadyTermine`, `finish_ThrowsBusinessRule_WhenAlreadyAnnule`, `cancel_ThrowsBusinessRule_WhenAlreadyTermine`, `cancel_ThrowsBusinessRule_WhenAlreadyAnnule` | | ☑ |
 | R-31 | Conducteur : réservations de SES trajets | `ReservationServiceImpl.findByTrajet` | `findByTrajet_ThrowsForbidden_WhenDriverNotOwner` | | ☑ |
 | R-32 | Montants `BigDecimal` à 2 décimales | calcul du montant (un seul endroit) | | S-01, S-03 | ☐ |
 | R-33 | Places restantes et prix de segment non stockés | modèle (pas de colonne) + `search`/`findById` | `getTrajetDetail_Success` | F-18 | ☑ |
@@ -49,4 +49,4 @@ Colonne « Appliquée dans » : emplacement **prévu** (voir `design.md`). Compl
 | T-10 | INFO sur actions métier, WARN sur règles refusées | ☐ |
 | T-13 | Recherche = une seule requête JPQL | `TrajetRepository.search` | ☑ |
 | T-14 | Détail du trajet sans N+1 (vérifier les logs SQL) | ☑ |
-| T-15 | `@Transactional` sur réservation, annulation de réservation, annulation de trajet | `ReservationServiceImpl.book` | S-01 | ☑ |
+| T-15 | `@Transactional` sur réservation, annulation de réservation, annulation de trajet | `ReservationServiceImpl.book/cancel`, `TrajetServiceImpl.cancel` | S-01, S-05, S-11 | ☑ |

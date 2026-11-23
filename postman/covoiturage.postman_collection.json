@@ -818,12 +818,69 @@
                 },
                 "description": "Clôture un trajet pour le passer au statut final TERMINE après son heure de départ (R-28, R-30)."
               }
+            },
+            {
+              "name": "F-24 : Annuler un trajet (204 No Content - Scénario S-11)",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "X-Driver-Id",
+                    "value": "{{driverId}}",
+                    "description": "Simule l'authentification du conducteur (R-31 / R-36)"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/trips/{{tripId}}/cancel",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "trips", "{{tripId}}", "cancel"]
+                },
+                "description": "Annule un trajet et passe toutes ses réservations CONFIRMEE à ANNULEE dans la même transaction (R-29, R-30, T-15, S-11)."
+              }
             }
           ]
         },
         {
           "name": "Cas d'Erreurs & Règles Métier",
           "item": [
+            {
+              "name": "403 - Annuler le trajet d'un autre conducteur (R-36)",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "X-Driver-Id",
+                    "value": "99999",
+                    "description": "Identifiant d'un autre conducteur"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/trips/{{tripId}}/cancel",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "trips", "{{tripId}}", "cancel"]
+                },
+                "description": "Rejet 403 Forbidden si un conducteur tente d'annuler le trajet d'un autre conducteur."
+              }
+            },
+            {
+              "name": "409 - Annuler un trajet déjà ANNULE ou TERMINE (R-30)",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "X-Driver-Id",
+                    "value": "{{driverId}}",
+                    "description": "Conducteur propriétaire"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/trips/{{tripId}}/cancel",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "trips", "{{tripId}}", "cancel"]
+                },
+                "description": "Rejet 409 Conflict si un trajet a déjà un statut final (TERMINE ou ANNULE, R-30)."
+              }
+            },
             {
               "name": "409 - Terminer un trajet avant le départ (R-28 / S-09)",
               "request": {

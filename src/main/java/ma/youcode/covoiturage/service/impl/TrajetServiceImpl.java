@@ -10,8 +10,10 @@ import ma.youcode.covoiturage.dto.response.TrajetResponse;
 import ma.youcode.covoiturage.dto.response.TrajetSearchResult;
 import ma.youcode.covoiturage.entity.Conducteur;
 import ma.youcode.covoiturage.entity.PointArret;
+import ma.youcode.covoiturage.entity.Reservation;
 import ma.youcode.covoiturage.entity.Trajet;
 import ma.youcode.covoiturage.entity.Vehicule;
+import ma.youcode.covoiturage.entity.enums.StatutReservation;
 import ma.youcode.covoiturage.entity.enums.StatutTrajet;
 import ma.youcode.covoiturage.exception.BusinessRuleException;
 import ma.youcode.covoiturage.exception.ForbiddenOperationException;
@@ -260,5 +262,41 @@ public class TrajetServiceImpl implements TrajetService {
         int placesRestantes = Math.max(0, savedTrajet.getPlacesProposees() - placesOccupees);
 
         return trajetMapper.toDetailResponse(savedTrajet, placesRestantes);
+    }
+
+    @Override
+    @Transactional
+    public void cancel(Long driverId, Long tripId) {
+        log.info("Tentative d'annulation du trajet #{} par le conducteur {}", tripId, driverId);
+
+        // 1. Recherche du trajet avec verrou pessimiste (404 si introuvable)
+        Trajet trajet = trajetRepository.findByIdForUpdate(tripId)
+                .orElseThrow(() -> new ResourceNotFoundException("Trajet non trouvé avec l'id : " + tripId));
+
+        // 2. R-36 / R-31 : Conducteur annule SES trajets seulement (403)
+        if (!trajet.getConducteur().getId().equals(driverId)) {
+            log.warn("Tentative d'annulation du trajet #{} par un conducteur non propriétaire (reçu: {}, propriétaire: {})",
+                    tripId, driverId, trajet.getConducteur().getId());
+            throw new ForbiddenOperationException("Vous ne pouvez annuler que vos propres trajets");
+        }
+
+        // 3. R-30 : TERMINE et ANNULE sont des statuts finaux (409)
+        if (trajet.getStatut() == StatutTrajet.TERMINE || trajet.getStatut() == StatutTrajet.ANNULE) {
+            log.warn("Tentative d'annulation du trajet #{} ayant déjà le statut final {}", tripId, trajet.getStatut());
+            throw new BusinessRuleException("Impossible d'annuler un trajet déjà " + trajet.getStatut());
+        }
+
+        // 4. Annulation du trajet
+        trajet.annuler();
+        trajetRepository.save(trajet);
+        log.info("Trajet #{} marqué comme ANNULE par le conducteur {}", tripId, driverId);
+
+        // 5. R-29 & T-15 : Toutes les réservations CONFIRMEE passent à ANNULEE dans la même transaction
+        List<Reservation> reservationsConfirmees = reservationRepository.findByTrajetIdAndStatut(tripId, StatutReservation.CONFIRMEE);
+        for (Reservation reservation : reservationsConfirmees) {
+            reservation.annuler();
+        }
+        reservationRepository.saveAll(reservationsConfirmees);
+        log.info("{} réservation(s) confirmée(s) basculée(s) à ANNULEE pour le trajet #{}", reservationsConfirmees.size(), tripId);
     }
 }

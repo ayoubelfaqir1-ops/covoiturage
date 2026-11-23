@@ -82,4 +82,13 @@ public class TrajetController {
             @PathVariable Long id) {
         return trajetService.finish(driverId, id);
     }
+
+    @PatchMapping("/{id}/cancel")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Operation(summary = "F-24 Annuler un trajet")
+    public void cancel(
+            @RequestHeader("X-Driver-Id") Long driverId,
+            @PathVariable Long id) {
+        trajetService.cancel(driverId, id);
+    }
 }

@@ -41,4 +41,6 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
         ORDER BY r.dateReservation DESC
     """)
     List<Reservation> findByTrajetIdOrderByDateReservationDesc(@Param("trajetId") Long trajetId);
+
+    List<Reservation> findByTrajetIdAndStatut(Long trajetId, StatutReservation statut);
 }

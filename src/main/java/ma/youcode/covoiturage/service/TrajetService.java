@@ -25,4 +25,6 @@ public interface TrajetService {
     );
 
     TrajetDetailResponse finish(Long driverId, Long tripId);
+
+    void cancel(Long driverId, Long tripId);
 }
